@@ -1,5 +1,5 @@
 /**
- *  Smart Pool Pump
+ *  Pool Controller
  *
  *  Turns on a Pump when you say and runs different times during the season
  *
@@ -9,7 +9,7 @@
  */
 
 definition(
-    name: "Smart Pool Pump Control",
+    name: "Pool Controller",
     namespace: "Craig.Romei",
     author: "Craig Romei",
     description: "Control a pool Pump based on the Seasons.",
