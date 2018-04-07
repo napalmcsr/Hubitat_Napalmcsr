@@ -1,5 +1,5 @@
 /**
- *  Pool Controller
+ *  Smart Pool Pump
  *
  *  Turns on a Pump when you say and runs different times during the season
  *
@@ -9,7 +9,7 @@
  */
 
 definition(
-    name: "Pool Controller",
+    name: "Smart Pool Pump Control",
     namespace: "Craig.Romei",
     author: "Craig Romei",
     description: "Control a pool Pump based on the Seasons.",
@@ -90,8 +90,10 @@ def Timehandler()
         break
     }
     log.debug "RunTime: ${RunTime}"
+    def TimeToRun = 60*60*RunTime
+    log.debug "TimeToRun: ${TimeToRun}"
    // sendNotificationEvent("Running the Pool Pump for ${RunTime} hours.")
-    runIn(60 * 60 * RunTime.toInteger(), TurnOffPoolSwitch)
+    runIn(TimeToRun.toInteger(), TurnOffPoolSwitch)
 }
 
 def PoolSwitchHandler(evt)
