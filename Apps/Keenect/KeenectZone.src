@@ -695,11 +695,11 @@ def levelHandler(evt){
     log.info "evt: ${evt}"
     def ventData = state."${evt.deviceId}"
     def v = evt.value.toFloat().round(0).toInteger()
-    def t = evt.date.getTime()
+    def t = evt.date.getTime().toLong()
     log.info "v: ${v}"
     log.info "t: ${t}"
     log.info "ventData: ${ventData}"
- /*
+ 
     if (ventData){
         //request
         if (evt.description == ""){
@@ -708,13 +708,15 @@ def levelHandler(evt){
             logger(30,"debug","levelHandler- request vo: ${v} t: ${t}")
 		//response
 		} else {
-        	ventData.voResponse = v
-            ventData.voResponseTS = t
-            logger(30,"debug","levelHandler- ventData.voResponseTS: ${ventData.voResponseTS}")
-            logger(30,"debug","levelHandler- ventData.voRequestTS: ${ventData.voRequestTS}")
-            double vr = Double.parseDouble(ventData.voRequestTS)
-            double tr = Double.parseDouble(t)
-            ventData.voTTC = ((tr - vr) / 1000).toFloat().round(1)
+           // if(ventData.voRequestTS==null){
+                    double vr = t
+    		//}else{
+        	//	double vr = ventData.voRequestTS.toLong()
+    		//}
+            double tr = ventData.voResponseTS.toLong()
+            logger(30,"debug","levelHandler- tr: ${tr}")
+            logger(30,"debug","levelHandler- vr: ${vr}")
+            ventData.voTTC = ((vr - tr) / 1000).round(1)
             logger(30,"debug","levelHandler- response vo: ${v} t: ${t} voTTC: ${ventData.voTTC}")
         }
     } else {
@@ -728,7 +730,7 @@ def levelHandler(evt){
             logger(30,"debug","levelHandler-init response vo: ${v} t: ${t}")
         }
     }
- */   
+    
     logger(40,"debug","levelHandler:exit- ")
 }
 
@@ -1112,6 +1114,7 @@ def integrator(){
 		def zoneTempLocal = state.zoneTempLocal
 		def asp = state.activeSetPoint
 		def d
+    	def ventReport = ""
 		d = (zoneTempLocal - asp).toFloat()
 		/* d = (d*0.50).round(2)
 
@@ -1137,8 +1140,12 @@ def integrator(){
 			state.integrator=intround
 			log.info "new state.integrator ${state.integrator}"
 
-			*/                   
-			state.endReport = "\n\tVentMode: ${state.VentMode}\n\tsetpoint: ${tempStr(asp)}\n\tend temp: ${tempStr(zoneTempLocal)}\n\tvariance: ${tempStr(d)}\n\tvent levels: ${vents.currentValue("level")}"        
+			*/           
+    		settings.vents.each{ vent ->
+                ventReport = vent.displayName + ": " + vent.currentValue("level") + "\n\t"
+            }
+                
+			state.endReport = "\n\tVentMode: ${state.VentMode}\n\tsetpoint: ${tempStr(asp)}\n\tend temp: ${tempStr(zoneTempLocal)}\n\tvariance: ${tempStr(d)}\n\tvent levels: ${ventReport}"        
 		//}else {
 		//log.info"fan only no chage of state.integrator ${state.integrator}"
 	//}
