@@ -93,7 +93,7 @@ def HumidityHandler(evt)
             }
             else
             {
-                runIn(60 * HumidityDropTimeout.tointeger(), TurnOffFanSwitchCheckHumidity)
+                runIn(60 * HumidityDropTimeout.toInteger(), TurnOffFanSwitchCheckHumidity)
             }
         }
 	}
