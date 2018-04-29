@@ -72,7 +72,11 @@ def HumidityHandler(evt)
 {
     log.info "running humidity check"
 	state.humpres = IsHumidityPresent(evt, HumidityIncreaseRate, HumidityThreshold, state.humpres)
-	log.info "found humidity = ${state.humpres}"
+	log.info "HumidityHandler: humidity = ${state.humpres}"
+	log.info "HumidityHandler: state.AutomaticallyTurnedOn = ${state.humpres}"
+	log.info "HumidityHandler: ManualControlMode = ${ManualControlMode}"
+	log.info "HumidityHandler: FanSwitch.currentValue = ${FanSwitch.currentValue("switch")}"
+    
 	//if the humidity is high (or rising fast) and the fan is off, kick on the fan
     if (state.humpres && FanSwitch.currentValue("switch") == "off")
     {
@@ -105,7 +109,7 @@ def FanSwitchHandler(evt)
 	switch(evt.value)
     {
     	case "on":
-                if(!state.AutomaticallyTurnedOn && ManualControlMode == "After Set Time" && ManualOffMinutes)
+                if(!state.AutomaticallyTurnedOn && (ManualControlMode == "After Set Time") && ManualOffMinutes)
                 {
                     if(ManualOffMinutes == 0)
                     {
@@ -134,10 +138,12 @@ def TurnOffFanSwitchCheckHumidity()
         	log.debug "Didn't turn off fan because humidity rate is ${state.HumidityChangeRate}"
             state.AutomaticallyTurnedOn = true
             state.AutomaticallyTurnedOnAt = now()
+            runIn(600, TurnOffFanSwitchCheckHumidity)
         }
         else
         {
         	FanSwitch.off()
+            state.AutomaticallyTurnedOn = false
         }
     }
 }
@@ -157,14 +163,14 @@ def IsHumidityPresent(evt, incrate, threshold, currpres)
 {
     
     def states = evt.device.eventsSince(new Date((long)(evt.date.getTime() - (21*60000)))).findAll{it.name == "humidity"}
-                log.debug "numStates is ${states.size().toString()}"
+                log.debug "IsHumidityPresent: numStates is ${states.size().toString()}"
     
     double lastevtvalue = Double.parseDouble(evt.value.replace("%", ""))
     def lastevtdate = evt.date
     
     	for(int i = 0; i < states.size(); i++)
         {
-    		log.debug "(DEBUG!!!)  humidity: ${states[i].value}"
+    		log.debug "IsHumidityPresent:   humidity: ${states[i].value}"
         }
     if(threshold && (lastevtvalue >= threshold))
     {
@@ -178,26 +184,20 @@ def IsHumidityPresent(evt, incrate, threshold, currpres)
     boolean anyposrate = false
     if (states)
     {
-    log.debug "states is true"
+    log.debug "IsHumidityPresent: states is true"
     	
     	for(int i = 0; i < states.size(); i++)
         {
-    		log.debug "Running State: ${i.toString()}"
-    		log.debug "State: ${states[i].date}"
-    		log.debug "lastevtdate: ${lastevtdate}"
         	if(states[i].date.before(lastevtdate))
             {
             	log.debug "states date is true"
                 double nextevtvalue = Double.parseDouble(states[i].value.replace("%", ""))
                 def nextevtdate = states[i].date
                 double rate = (lastevtvalue - nextevtvalue)
-                
-                log.debug "lastevtvalue is ${lastevtvalue}"
-                log.debug "nextevtvalue is ${nextevtvalue}"
-                log.debug "humidity rate is ${rate}"
+               
                 if(rate >= incrate)
                 {
-    				log.debug "humidity rate above incrate"
+    				log.debug "IsHumidityPresent: humidity rate above incrate"
                 	return true
                 }
                 if(rate > 0)
