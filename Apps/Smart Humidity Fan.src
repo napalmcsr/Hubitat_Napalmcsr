@@ -97,6 +97,7 @@ def HumidityHandler(evt)
             }
             else
             {
+                log.debug "HumidityHandler:Turn Fan off in ${HumidityDropTimeout} minutes."
                 runIn(60 * HumidityDropTimeout.toInteger(), TurnOffFanSwitchCheckHumidity)
             }
         }
