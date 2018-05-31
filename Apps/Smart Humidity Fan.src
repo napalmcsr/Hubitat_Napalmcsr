@@ -64,6 +64,7 @@ def initialize()
     log.debug "debug"
 	state.humpres = false
 	state.AutomaticallyTurnedOn = false
+	state.TurnOffLaterStarted = false
     subscribe(HumiditySensor, "humidity", HumidityHandler)
     subscribe(FanSwitch, "switch", FanSwitchHandler)
 }
@@ -74,12 +75,13 @@ def HumidityHandler(evt)
 	state.humpres = IsHumidityPresent(evt, HumidityIncreaseRate, HumidityThreshold, state.humpres)
 	log.info "HumidityHandler: humidity = ${state.humpres}"
 	log.info "HumidityHandler: state.AutomaticallyTurnedOn = ${state.AutomaticallyTurnedOn}"
+	log.info "HumidityHandler: state.TurnOffLaterStarted = ${state.TurnOffLaterStarted}"
 	log.info "HumidityHandler: FanSwitch.currentValue = ${FanSwitch.currentValue("switch")}"
     
 	//if the humidity is high (or rising fast) and the fan is off, kick on the fan
     if (state.humpres && FanSwitch.currentValue("switch") == "off")
     {
-		state.AutomaticallyTurnedOn = true
+	state.AutomaticallyTurnedOn = true
         state.AutomaticallyTurnedOnAt = now()
         log.debug "HumidityHandler:Fan On"
        	FanSwitch.on()
@@ -92,12 +94,16 @@ def HumidityHandler(evt)
             if(HumidityDropTimeout == 0)
             {
         		log.debug "HumidityHandler:Fan Off"
-                FanSwitch.off()
+                        TurnOffFanSwitch()
             }
             else
             {
                 log.debug "HumidityHandler:Turn Fan off in ${HumidityDropTimeout} minutes."
-                runIn(60 * HumidityDropTimeout.toInteger(), TurnOffFanSwitchCheckHumidity)
+		if(!TurnOffLaterStarted)
+		{
+			state.TurnOffLaterStarted = true
+			runIn(60 * HumidityDropTimeout.toInteger(), TurnOffFanSwitchCheckHumidity)
+		}
             }
         }
 	}
@@ -114,12 +120,12 @@ def FanSwitchHandler(evt)
                 {
                     if(ManualOffMinutes == 0)
                     {
-        				log.debug "FanSwitchHandler::Fan Off"
+        		log.debug "FanSwitchHandler::Fan Off"
                         TurnOffFanSwitch()
                     }
                     else
                     {
-    					log.info "FanSwitchHandler::Will turn off later"
+    			log.info "FanSwitchHandler::Will turn off later"
                         runIn(60 * ManualOffMinutes.toInteger(), TurnOffFanSwitch)
                     }
                 }
@@ -145,8 +151,7 @@ def TurnOffFanSwitchCheckHumidity()
         else
         {
         	log.debug "TurnOffFanSwitchCheckHumidity: Turning the Fan off now"
-        	FanSwitch.off()
-            state.AutomaticallyTurnedOn = false
+        	TurnOffFanSwitch()
         }
     }
 }
@@ -157,7 +162,8 @@ def TurnOffFanSwitch()
     {
         log.debug "TurnOffFanSwitch:Fan Off"
         FanSwitch.off()
-		state.AutomaticallyTurnedOn = false
+	state.AutomaticallyTurnedOn = false
+	state.TurnOffLaterStarted = false
     }
 }
 
@@ -185,7 +191,7 @@ def IsHumidityPresent(evt, incrate, threshold, currpres)
     
     
     
-    
+    state.HumidityChangeRate = 0
     boolean anyposrate = false
     if (states)
     {
@@ -200,14 +206,15 @@ def IsHumidityPresent(evt, incrate, threshold, currpres)
                 def nextevtdate = states[i].date
                 double rate = (lastevtvalue - nextevtvalue)
                
+                if(rate > 0)
+                {
+                	anyposrate = true
+			state.HumidityChangeRate = rate
+                }
                 if(rate >= incrate)
                 {
     				log.debug "IsHumidityPresent: humidity rate above incrate"
                 	return true
-                }
-                if(rate > 0)
-                {
-                	anyposrate = true
                 }
                 lastevtvalue = nextevtvalue
                 lastevtdate = nextevtdate
