@@ -98,11 +98,12 @@ def HumidityHandler(evt)
             }
             else
             {
-                log.debug "HumidityHandler:Turn Fan off in ${HumidityDropTimeout} minutes."
-		if(!TurnOffLaterStarted)
+		if(!state.TurnOffLaterStarted)
 		{
+            log.debug "HumidityHandler:Turn Fan off in ${HumidityDropTimeout} minutes."
 			state.TurnOffLaterStarted = true
 			runIn(60 * HumidityDropTimeout.toInteger(), TurnOffFanSwitchCheckHumidity)
+            log.info "HumidityHandler: state.TurnOffLaterStarted = ${state.TurnOffLaterStarted}"
 		}
             }
         }
@@ -139,8 +140,10 @@ def FanSwitchHandler(evt)
 
 def TurnOffFanSwitchCheckHumidity()
 {
+    log.debug "TurnOffFanSwitchCheckHumidity: Function Start"
 	if(FanSwitch.currentValue("switch") == "on")
     {
+        log.debug "TurnOffFanSwitchCheckHumidity: state.HumidityChangeRate ${state.HumidityChangeRate}"
         if(state.HumidityChangeRate > 0)
         {
         	log.debug "TurnOffFanSwitchCheckHumidity: Didn't turn off fan because humidity rate is ${state.HumidityChangeRate}"
@@ -188,9 +191,6 @@ def IsHumidityPresent(evt, incrate, threshold, currpres)
     	return true
     }
     
-    
-    
-    
     state.HumidityChangeRate = 0
     boolean anyposrate = false
     if (states)
@@ -209,7 +209,7 @@ def IsHumidityPresent(evt, incrate, threshold, currpres)
                 if(rate > 0)
                 {
                 	anyposrate = true
-			state.HumidityChangeRate = rate
+					state.HumidityChangeRate = rate
                 }
                 if(rate >= incrate)
                 {
