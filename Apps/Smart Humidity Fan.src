@@ -81,7 +81,7 @@ def HumidityHandler(evt)
 	//if the humidity is high (or rising fast) and the fan is off, kick on the fan
     if (state.humpres && FanSwitch.currentValue("switch") == "off")
     {
-	state.AutomaticallyTurnedOn = true
+		state.AutomaticallyTurnedOn = true
         state.AutomaticallyTurnedOnAt = now()
         log.debug "HumidityHandler:Fan On"
        	FanSwitch.on()
@@ -114,6 +114,8 @@ def FanSwitchHandler(evt)
 {
     log.info "FanSwitchHandler::Switch changed"
 	log.info "FanSwitchHandler: ManualControlMode = ${ManualControlMode}"
+	log.info "FanSwitchHandler: ManualOffMinutes = ${ManualOffMinutes}"
+	log.info "HumidityHandler: state.AutomaticallyTurnedOn = ${state.AutomaticallyTurnedOn}"
 	switch(evt.value)
     {
     	case "on":
@@ -121,7 +123,7 @@ def FanSwitchHandler(evt)
                 {
                     if(ManualOffMinutes == 0)
                     {
-        		log.debug "FanSwitchHandler::Fan Off"
+        				log.debug "FanSwitchHandler::Fan Off"
                         TurnOffFanSwitch()
                     }
                     else
