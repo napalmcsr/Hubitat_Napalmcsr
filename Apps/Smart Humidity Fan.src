@@ -36,7 +36,8 @@ preferences
 	}
     section("Fan Deactivation")
     {
-		input "HumidityDropTimeout", "number", title: "Turn off how long after humidity begins to drop (minutes):", required: true, defaultValue:  10
+		input "HumidityDropTimeout", "number", title: "How long after the humidity starts to drop should the fan turn off (minutes):", required: true, defaultValue:  10
+		input "HumidityDropLimit", "number", title: "How much should the humidty drop between readings before triggering the turn off delay:", required: true, defaultValue:  1
 	}
     section("Manual Activation")
     {
@@ -63,6 +64,7 @@ def initialize()
     log.info "info"
     log.debug "debug"
 	state.humpres = false
+	state.OverThreshold = false
 	state.AutomaticallyTurnedOn = false
 	state.TurnOffLaterStarted = false
     subscribe(HumiditySensor, "humidity", HumidityHandler)
@@ -72,14 +74,17 @@ def initialize()
 def HumidityHandler(evt)
 {
     log.info "HumidityHandler:running humidity check"
-	state.humpres = IsHumidityPresent(evt, HumidityIncreaseRate, HumidityThreshold, state.humpres)
-	log.info "HumidityHandler: humidity = ${state.humpres}"
+	state.OverThreshold = CheckThreshold(evt)
+	state.humpres = GetHumidityChange(evt)
+	log.info "HumidityHandler: humiditychange = ${state.humpres}"
+	log.info "HumidityHandler: state.OverThreshold = ${state.OverThreshold}"
 	log.info "HumidityHandler: state.AutomaticallyTurnedOn = ${state.AutomaticallyTurnedOn}"
 	log.info "HumidityHandler: state.TurnOffLaterStarted = ${state.TurnOffLaterStarted}"
+	log.info "HumidityHandler: state.HumidityChangeRate = ${state.HumidityChangeRate}"
 	log.info "HumidityHandler: FanSwitch.currentValue = ${FanSwitch.currentValue("switch")}"
     
 	//if the humidity is high (or rising fast) and the fan is off, kick on the fan
-    if (state.humpres && FanSwitch.currentValue("switch") == "off")
+    if (((state.HumidityChangeRate>HumidityIncreaseRate)||state.OverThreshold) && FanSwitch.currentValue("switch") == "off")
     {
 		state.AutomaticallyTurnedOn = true
         state.AutomaticallyTurnedOnAt = now()
@@ -87,9 +92,9 @@ def HumidityHandler(evt)
        	FanSwitch.on()
     }
     //turn off the fan when humidity returns to normal and it was kicked on by the humidity sensor
-    else if(!state.humpres && (state.AutomaticallyTurnedOn || ManualControlMode == "By Humidity"))
+    else if((state.AutomaticallyTurnedOn || ManualControlMode == "By Humidity")&& !state.TurnOffLaterStarted)
     {
-        if(FanSwitch.currentValue("switch") == "on")
+        if(-state.HumidityChangeRate>=HumidityDropLimit)
         {
             if(HumidityDropTimeout == 0)
             {
@@ -98,13 +103,10 @@ def HumidityHandler(evt)
             }
             else
             {
-		if(!state.TurnOffLaterStarted)
-		{
-            log.debug "HumidityHandler:Turn Fan off in ${HumidityDropTimeout} minutes."
-			state.TurnOffLaterStarted = true
-			runIn(60 * HumidityDropTimeout.toInteger(), TurnOffFanSwitchCheckHumidity)
-            log.info "HumidityHandler: state.TurnOffLaterStarted = ${state.TurnOffLaterStarted}"
-		}
+				log.debug "HumidityHandler:Turn Fan off in ${HumidityDropTimeout} minutes."
+				state.TurnOffLaterStarted = true
+				runIn(60 * HumidityDropTimeout.toInteger(), TurnOffFanSwitchCheckHumidity)
+				log.info "HumidityHandler: state.TurnOffLaterStarted = ${state.TurnOffLaterStarted}"
             }
         }
 	}
@@ -128,7 +130,7 @@ def FanSwitchHandler(evt)
                     }
                     else
                     {
-    			log.info "FanSwitchHandler::Will turn off later"
+						log.info "FanSwitchHandler::Will turn off later"
                         runIn(60 * ManualOffMinutes.toInteger(), TurnOffFanSwitch)
                     }
                 }
@@ -172,8 +174,21 @@ def TurnOffFanSwitch()
     }
 }
 
-
-def IsHumidityPresent(evt, incrate, threshold, currpres)
+def CheckThreshold(evt)
+{
+	double lastevtvalue = Double.parseDouble(evt.value.replace("%", ""))
+	if(lastevtvalue >= HumidityThreshold)
+		{
+			
+				log.debug "IsHumidityPresent: Humidity is above the Threashold"
+			return true
+		}
+		else
+		{
+			return false
+		}
+}
+def GetHumidityChange(evt)
 {
     
     def states = evt.device.eventsSince(new Date((long)(evt.date.getTime() - (21*60000)))).findAll{it.name == "humidity"}
@@ -182,48 +197,24 @@ def IsHumidityPresent(evt, incrate, threshold, currpres)
     double lastevtvalue = Double.parseDouble(evt.value.replace("%", ""))
     def lastevtdate = evt.date
     
-    	for(int i = 0; i < states.size(); i++)
-        {
-    		log.debug "IsHumidityPresent:   humidity: ${states[i].value}"
-        }
-    if(threshold && (lastevtvalue >= threshold))
+	log.debug "IsHumidityPresent: Humidity events in the last 20 min."
+	for(int i = 0; i < states.size(); i++)
+	{
+		log.debug "IsHumidityPresent: i:${i}  humidity: ${states[i].value} Date: ${states[i].date}"
+	}
+	if(states.size()<2)
+	{
+		state.HumidityChangeRate =-100
+		log.debug "IsHumidityPresent: Not enough events in the last 20 min."
+		return false
+	}
+    else
     {
-        
-    		log.debug "IsHumidityPresent: Humidity is above the Threashold"
-    	return true
-    }
-    
-    state.HumidityChangeRate = 0
-    boolean anyposrate = false
-    if (states)
-    {
-    log.debug "IsHumidityPresent: states is true"
-    	
-    	for(int i = 0; i < states.size(); i++)
-        {
-        	if(states[i].date.before(lastevtdate))
-            {
-            	log.debug "IsHumidityPresent: states date is true"
-                double nextevtvalue = Double.parseDouble(states[i].value.replace("%", ""))
-                def nextevtdate = states[i].date
-                double rate = (lastevtvalue - nextevtvalue)
-               
-                if(rate > 0)
-                {
-                	anyposrate = true
-					state.HumidityChangeRate = rate
-                }
-                if(rate >= incrate)
-                {
-    				log.debug "IsHumidityPresent: humidity rate above incrate"
-                	return true
-                }
-                lastevtvalue = nextevtvalue
-                lastevtdate = nextevtdate
-            }
-        }
+        state.HumidityChangeRate = 0
+        def currentHumidity = Double.parseDouble(states[0].value.replace("%", ""))
+        def lastHumidity = Double.parseDouble(states[1].value.replace("%", ""))
+        state.HumidityChangeRate = currentHumidity - lastHumidity
+        return true
     }
 
-    log.debug "IsHumidityPresent: returning ${currpres && anyposrate}"
-	return currpres && anyposrate
 }
