@@ -1,4 +1,5 @@
 /**
+ *  V4.1.0 Fixed for new Hubitat Nest Integration
  *  V4.0.0 Ported to Hubitat
  *  V3.2.0 Changed to having 1 master mode passed to zones
  *  V3.1.0 Changed zone to map control
@@ -63,7 +64,7 @@ def updated() {
 }
 
 def initialize() {
-	state.vParent = "4.0"
+	state.vParent = "4.1"
 	state.etf = app.id == '07d1abe4-352f-441e-a6bd-681929b217e4' //5
 	
     //subscribe(tStat, "thermostatSetpoint", notifyZones) doesn't look like we need to use this
@@ -573,7 +574,9 @@ def getMainTstatState(){
 		TstatState = "COOL"
 	}else if (mainFanMode.contains("CIRCULATE")){
     	TstatState = "FAN"  
-	} 
+    }else if (TstatState.contains("IDLE")){
+        TstatState = "OFF" 
+    }
 	
 	return TstatState
  }
