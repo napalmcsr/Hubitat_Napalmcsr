@@ -87,6 +87,7 @@ def HumidityHandler(evt)
     if (((state.HumidityChangeRate>HumidityIncreaseRate)||state.OverThreshold) && FanSwitch.currentValue("switch") == "off")
     {
 		state.AutomaticallyTurnedOn = true
+		state.TurnOffLaterStarted = false
         state.AutomaticallyTurnedOnAt = now()
         log.debug "HumidityHandler:Fan On"
        	FanSwitch.on()
@@ -138,6 +139,7 @@ def FanSwitchHandler(evt)
         case "off":
     		log.info "FanSwitchHandler::Switch turned off"
 		    state.AutomaticallyTurnedOn = false
+			state.TurnOffLaterStarted = false
         	break
     }
 }
