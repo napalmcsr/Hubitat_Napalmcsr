@@ -67,15 +67,15 @@ def initialize() {
 	state.etf = app.id == '07d1abe4-352f-441e-a6bd-681929b217e4' //5
 	
     //subscribe(tStat, "thermostatSetpoint", notifyZones) doesn't look like we need to use this
-    subscribe(tStat, "thermostatMode", checkNotify)
-    subscribe(tStat, "thermostatFanMode", checkNotify)
+    //subscribe(tStat, "thermostatMode", checkNotify)
+    //subscribe(tStat, "thermostatFanMode", checkNotify)
     subscribe(tStat, "thermostatOperatingState", checkNotify)
-    subscribe(tStat, "equipmentStatus", checkNotify)
+    //subscribe(tStat, "equipmentStatus", checkNotify)
 
-    subscribe(tStat, "heatingSetpoint", checkNotify)
-    subscribe(tStat, "coolingSetpoint", checkNotify)
+    //subscribe(tStat, "heatingSetpoint", checkNotify)
+    //subscribe(tStat, "coolingSetpoint", checkNotify)
     //tempSensors
-    subscribe(tempSensors, "temperature", checkNotify)
+    //subscribe(tempSensors, "temperature", checkNotify)
     //pressure switch
     subscribe(pressureSwitch, "contact", managePressure)
 
@@ -408,7 +408,10 @@ def getReport(rptName){
 def checkNotify(evt){
     logger(40,"debug","checkNotify:enter- ")
     logger(40,"debug","checkNotify:evt: ${evt}")
-	def tempStr = ''
+    if (evt){
+    logger(40,"debug","checkNotify:evt.name: ${evt.name}")
+    }
+        def tempStr = ''
     def tempFloat = 0.0
     def tempBool = false
     def delay = 0
@@ -543,7 +546,7 @@ def getMainTstatState(){
 	} else {
     	TstatState = "NULL"
     }
-     logger(10,"debug","getMainTstatState:TstatState: ${TstatState}")
+     logger(10,"debug","getMainTstatState:OldTstatState: ${TstatState}")
 	def mainES = tStat.currentValue("equipmentStatus")
 	if (mainES!=null){
 		mainES = mainES.toUpperCase()
@@ -571,12 +574,12 @@ def getMainTstatState(){
 		TstatState = "HEAT"
 	} else if (TstatState.contains("COOL")||mainES.contains("COOL")){
 		TstatState = "COOL"
-	}else if (mainFanMode.contains("CIRCULATE")||TstatState.contains("FAN")){
+	}else if (mainFanMode.contains("CIRCULATE")||mainFanMode.contains("ON")||TstatState.contains("FAN")){
     	TstatState = "FAN"  
     }else if (TstatState.contains("IDLE")){
         TstatState = "OFF" 
     }
-	
+	logger(10,"debug","getMainTstatState:NewTstatState: ${TstatState}")
 	return TstatState
  }
  
