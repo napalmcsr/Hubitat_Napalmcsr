@@ -37,7 +37,7 @@ preferences
     section("Fan Deactivation")
     {
 		input "HumidityDropTimeout", "number", title: "How long after the humidity starts to drop should the fan turn off (minutes):", required: true, defaultValue:  10
-		input "HumidityDropLimit", "number", title: "How much should the humidty drop between readings before triggering the turn off delay:", required: true, defaultValue:  1
+		input "HumidityDropLimit", "number", title: "What percentage above the starting humidity before triggering the turn off delay:", required: true, defaultValue:  25
 	}
     section("Manual Activation")
     {
@@ -81,7 +81,9 @@ def HumidityHandler(evt)
 	log.info "HumidityHandler: state.AutomaticallyTurnedOn = ${state.AutomaticallyTurnedOn}"
 	log.info "HumidityHandler: state.TurnOffLaterStarted = ${state.TurnOffLaterStarted}"
 	log.info "HumidityHandler: state.HumidityChangeRate = ${state.HumidityChangeRate}"
-	log.info "HumidityHandler: FanSwitch.currentValue = ${FanSwitch.currentValue("switch")}"
+    log.info "HumidityHandler: state.StartingHumidity = ${state.StartingHumidity}"
+    log.info "HumidityHandler: state.HighestHumidity = ${state.HighestHumidity}"
+    log.info "HumidityHandler: state.currentHumidity = ${state.currentHumidity}"
     
 	//if the humidity is high (or rising fast) and the fan is off, kick on the fan
     if (((state.HumidityChangeRate>HumidityIncreaseRate)||state.OverThreshold) && FanSwitch.currentValue("switch") == "off")
@@ -91,11 +93,21 @@ def HumidityHandler(evt)
         state.AutomaticallyTurnedOnAt = now()
         log.debug "HumidityHandler:Fan On"
        	FanSwitch.on()
+        state.StartingHumidity = state.lastHumidity
+        state.HighestHumidity = state.currentHumidity
+		log.info "HumidityHandler: new state.StartingHumidity = ${state.StartingHumidity}"
+		log.info "HumidityHandler: new state.HighestHumidity = ${state.HighestHumidity}"
     }
     //turn off the fan when humidity returns to normal and it was kicked on by the humidity sensor
     else if((state.AutomaticallyTurnedOn || ManualControlMode == "By Humidity")&& !state.TurnOffLaterStarted)
     {
-        if(-state.HumidityChangeRate>=HumidityDropLimit)
+        if(state.currentHumidity>state.HighestHumidity)
+        {
+            state.HighestHumidity = state.currentHumidity
+			log.info "HumidityHandler: new state.HighestHumidity = ${state.HighestHumidity}"
+        }
+		log.info "HumidityHandler: targetHumidity = ${state.StartingHumidity+HumidityDropLimit/100*(state.HighestHumidity-state.StartingHumidity)}"
+        if(state.currentHumidity<=(state.StartingHumidity+HumidityDropLimit/100*(state.HighestHumidity-state.StartingHumidity)))
         {
             if(HumidityDropTimeout == 0)
             {
@@ -207,6 +219,7 @@ def GetHumidityChange(evt)
 	if(states.size()<2)
 	{
 		state.HumidityChangeRate =-100
+        state.currentHumidity = Double.parseDouble(states[0].value.replace("%", ""))
 		log.debug "IsHumidityPresent: Not enough events in the last 20 min."
 		return false
 	}
@@ -216,6 +229,8 @@ def GetHumidityChange(evt)
         def currentHumidity = Double.parseDouble(states[0].value.replace("%", ""))
         def lastHumidity = Double.parseDouble(states[1].value.replace("%", ""))
         state.HumidityChangeRate = currentHumidity - lastHumidity
+        state.lastHumidity = lastHumidity
+        state.currentHumidity = currentHumidity
         return true
     }
 
