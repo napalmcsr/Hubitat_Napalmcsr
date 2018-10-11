@@ -46,6 +46,18 @@ preferences
         paragraph "How many minutes until the fan is auto-turned-off?"
         input "ManualOffMinutes", "number", title: "Auto Turn Off Time (minutes)?", required: false, defaultValue: 20
     }
+	section("Logging")
+	{         		input(
+            		name			: "logLevel"
+                	,title			: "IDE logging level" 
+                	,multiple		: false
+                	,required		: true
+                	,type			: "enum"
+                    ,options		: getLogLevels()
+                	,submitOnChange	: false
+                   	,defaultValue	: "10"
+            	)  
+	}
 }
 
 def installed()
@@ -61,8 +73,7 @@ def updated()
 
 def initialize()
 {
-    log.info "info"
-    log.debug "debug"
+    infolog "Initializing"
 	state.humpres = false
 	state.OverThreshold = false
 	state.AutomaticallyTurnedOn = false
@@ -73,17 +84,17 @@ def initialize()
 
 def HumidityHandler(evt)
 {
-    log.info "HumidityHandler:running humidity check"
+    infolog "HumidityHandler:running humidity check"
 	state.OverThreshold = CheckThreshold(evt)
 	state.humpres = GetHumidityChange(evt)
-	log.info "HumidityHandler: humiditychange = ${state.humpres}"
-	log.info "HumidityHandler: state.OverThreshold = ${state.OverThreshold}"
-	log.info "HumidityHandler: state.AutomaticallyTurnedOn = ${state.AutomaticallyTurnedOn}"
-	log.info "HumidityHandler: state.TurnOffLaterStarted = ${state.TurnOffLaterStarted}"
-	log.info "HumidityHandler: state.HumidityChangeRate = ${state.HumidityChangeRate}"
-    log.info "HumidityHandler: state.StartingHumidity = ${state.StartingHumidity}"
-    log.info "HumidityHandler: state.HighestHumidity = ${state.HighestHumidity}"
-    log.info "HumidityHandler: state.currentHumidity = ${state.currentHumidity}"
+	debuglog "HumidityHandler: humiditychange = ${state.humpres}"
+	debuglog "HumidityHandler: state.OverThreshold = ${state.OverThreshold}"
+	debuglog "HumidityHandler: state.AutomaticallyTurnedOn = ${state.AutomaticallyTurnedOn}"
+	debuglog "HumidityHandler: state.TurnOffLaterStarted = ${state.TurnOffLaterStarted}"
+	debuglog "HumidityHandler: state.HumidityChangeRate = ${state.HumidityChangeRate}"
+    debuglog "HumidityHandler: state.StartingHumidity = ${state.StartingHumidity}"
+    debuglog "HumidityHandler: state.HighestHumidity = ${state.HighestHumidity}"
+    debuglog "HumidityHandler: state.currentHumidity = ${state.currentHumidity}"
     
 	//if the humidity is high (or rising fast) and the fan is off, kick on the fan
     if (((state.HumidityChangeRate>HumidityIncreaseRate)||state.OverThreshold) && FanSwitch.currentValue("switch") == "off")
@@ -91,12 +102,12 @@ def HumidityHandler(evt)
 		state.AutomaticallyTurnedOn = true
 		state.TurnOffLaterStarted = false
         state.AutomaticallyTurnedOnAt = now()
-        log.debug "HumidityHandler:Fan On"
+        infolog "HumidityHandler:Turn On Fan due to humidity increase"
        	FanSwitch.on()
         state.StartingHumidity = state.lastHumidity
         state.HighestHumidity = state.currentHumidity
-		log.info "HumidityHandler: new state.StartingHumidity = ${state.StartingHumidity}"
-		log.info "HumidityHandler: new state.HighestHumidity = ${state.HighestHumidity}"
+		debuglog "HumidityHandler: new state.StartingHumidity = ${state.StartingHumidity}"
+		debuglog "HumidityHandler: new state.HighestHumidity = ${state.HighestHumidity}"
     }
     //turn off the fan when humidity returns to normal and it was kicked on by the humidity sensor
     else if((state.AutomaticallyTurnedOn || ManualControlMode == "By Humidity")&& !state.TurnOffLaterStarted)
@@ -104,22 +115,22 @@ def HumidityHandler(evt)
         if(state.currentHumidity>state.HighestHumidity)
         {
             state.HighestHumidity = state.currentHumidity
-			log.info "HumidityHandler: new state.HighestHumidity = ${state.HighestHumidity}"
+			debuglog "HumidityHandler: new state.HighestHumidity = ${state.HighestHumidity}"
         }
-		log.info "HumidityHandler: targetHumidity = ${state.StartingHumidity+HumidityDropLimit/100*(state.HighestHumidity-state.StartingHumidity)}"
+		debuglog "HumidityHandler: targetHumidity = ${state.StartingHumidity+HumidityDropLimit/100*(state.HighestHumidity-state.StartingHumidity)}"
         if(state.currentHumidity<=(state.StartingHumidity+HumidityDropLimit/100*(state.HighestHumidity-state.StartingHumidity)))
         {
             if(HumidityDropTimeout == 0)
             {
-        		log.debug "HumidityHandler:Fan Off"
+        		infolog "HumidityHandler:Fan Off"
                         TurnOffFanSwitch()
             }
             else
             {
-				log.debug "HumidityHandler:Turn Fan off in ${HumidityDropTimeout} minutes."
+				infolog "HumidityHandler:Turn Fan off in ${HumidityDropTimeout} minutes."
 				state.TurnOffLaterStarted = true
 				runIn(60 * HumidityDropTimeout.toInteger(), TurnOffFanSwitchCheckHumidity)
-				log.info "HumidityHandler: state.TurnOffLaterStarted = ${state.TurnOffLaterStarted}"
+				debuglog "HumidityHandler: state.TurnOffLaterStarted = ${state.TurnOffLaterStarted}"
             }
         }
 	}
@@ -127,10 +138,10 @@ def HumidityHandler(evt)
 
 def FanSwitchHandler(evt)
 {
-    log.info "FanSwitchHandler::Switch changed"
-	log.info "FanSwitchHandler: ManualControlMode = ${ManualControlMode}"
-	log.info "FanSwitchHandler: ManualOffMinutes = ${ManualOffMinutes}"
-	log.info "HumidityHandler: state.AutomaticallyTurnedOn = ${state.AutomaticallyTurnedOn}"
+    infolog "FanSwitchHandler::Switch changed"
+	debuglog "FanSwitchHandler: ManualControlMode = ${ManualControlMode}"
+	debuglog "FanSwitchHandler: ManualOffMinutes = ${ManualOffMinutes}"
+	debuglog "HumidityHandler: state.AutomaticallyTurnedOn = ${state.AutomaticallyTurnedOn}"
 	switch(evt.value)
     {
     	case "on":
@@ -138,18 +149,18 @@ def FanSwitchHandler(evt)
                 {
                     if(ManualOffMinutes == 0)
                     {
-        				log.debug "FanSwitchHandler::Fan Off"
+        				debuglog "FanSwitchHandler::Fan Off"
                         TurnOffFanSwitch()
                     }
                     else
                     {
-						log.info "FanSwitchHandler::Will turn off later"
+						debuglog "FanSwitchHandler::Will turn off later"
                         runIn(60 * ManualOffMinutes.toInteger(), TurnOffFanSwitch)
                     }
                 }
 	        break
         case "off":
-    		log.info "FanSwitchHandler::Switch turned off"
+    		debuglog "FanSwitchHandler::Switch turned off"
 		    state.AutomaticallyTurnedOn = false
 			state.TurnOffLaterStarted = false
         	break
@@ -158,20 +169,20 @@ def FanSwitchHandler(evt)
 
 def TurnOffFanSwitchCheckHumidity()
 {
-    log.debug "TurnOffFanSwitchCheckHumidity: Function Start"
+    debuglog "TurnOffFanSwitchCheckHumidity: Function Start"
 	if(FanSwitch.currentValue("switch") == "on")
     {
-        log.debug "TurnOffFanSwitchCheckHumidity: state.HumidityChangeRate ${state.HumidityChangeRate}"
+        debuglog "TurnOffFanSwitchCheckHumidity: state.HumidityChangeRate ${state.HumidityChangeRate}"
         if(state.HumidityChangeRate > 0)
         {
-        	log.debug "TurnOffFanSwitchCheckHumidity: Didn't turn off fan because humidity rate is ${state.HumidityChangeRate}"
+        	debuglog "TurnOffFanSwitchCheckHumidity: Didn't turn off fan because humidity rate is ${state.HumidityChangeRate}"
             state.AutomaticallyTurnedOn = true
             state.AutomaticallyTurnedOnAt = now()
             runIn(600, TurnOffFanSwitchCheckHumidity)
         }
         else
         {
-        	log.debug "TurnOffFanSwitchCheckHumidity: Turning the Fan off now"
+        	debuglog "TurnOffFanSwitchCheckHumidity: Turning the Fan off now"
         	TurnOffFanSwitch()
         }
     }
@@ -181,7 +192,7 @@ def TurnOffFanSwitch()
 {
     if(FanSwitch.currentValue("switch") == "on")
     {
-        log.debug "TurnOffFanSwitch:Fan Off"
+        infolog "TurnOffFanSwitch:Fan Off"
         FanSwitch.off()
 	state.AutomaticallyTurnedOn = false
 	state.TurnOffLaterStarted = false
@@ -194,7 +205,7 @@ def CheckThreshold(evt)
 	if(lastevtvalue >= HumidityThreshold)
 		{
 			
-				log.debug "IsHumidityPresent: Humidity is above the Threashold"
+			infolog "IsHumidityPresent: Humidity is above the Threashold"
 			return true
 		}
 		else
@@ -206,21 +217,21 @@ def GetHumidityChange(evt)
 {
     
     def states = evt.device.eventsSince(new Date((long)(evt.date.getTime() - (21*60000)))).findAll{it.name == "humidity"}
-                log.debug "IsHumidityPresent: numStates is ${states.size().toString()}"
+                debuglog "IsHumidityPresent: numStates is ${states.size().toString()}"
     
     double lastevtvalue = Double.parseDouble(evt.value.replace("%", ""))
     def lastevtdate = evt.date
     
-	log.debug "IsHumidityPresent: Humidity events in the last 20 min."
+	debuglog "IsHumidityPresent: Humidity events in the last 20 min."
 	for(int i = 0; i < states.size(); i++)
 	{
-		log.debug "IsHumidityPresent: i:${i}  humidity: ${states[i].value} Date: ${states[i].date}"
+		debuglog "IsHumidityPresent: i:${i}  humidity: ${states[i].value} Date: ${states[i].date}"
 	}
 	if(states.size()<2)
 	{
 		state.HumidityChangeRate =-100
         state.currentHumidity = Double.parseDouble(states[0].value.replace("%", ""))
-		log.debug "IsHumidityPresent: Not enough events in the last 20 min."
+		debuglog "IsHumidityPresent: Not enough events in the last 20 min."
 		return false
 	}
     else
@@ -234,4 +245,27 @@ def GetHumidityChange(evt)
         return true
     }
 
+}
+def debuglog(statement)
+{   
+	def logL = 0
+    if (logLevel) logL = logLevel.toInteger()
+    
+    if (logL == 0) {return}//bail
+    else if (logL >= 2){
+		log.debug(statement)
+	}
+}
+def infolog(statement)
+{	
+	def logL = 0
+    if (logLevel) logL = logLevel.toInteger()
+    
+    if (logL == 0) {return}//bail
+    else if (logL >= 1){
+		log.info(statement)
+	}
+}
+def getLogLevels(){
+    return [["0":"None"],["1":"Running"],["2":"NeedHelp"]]
 }
