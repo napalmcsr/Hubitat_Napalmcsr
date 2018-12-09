@@ -67,7 +67,6 @@ preferences
 def installed()
 {
     initialize()
-    state.lastHumidity = 300
 }
 
 def updated()
@@ -92,9 +91,8 @@ def HumidityHandler(evt)
     infolog "HumidityHandler:running humidity check"
                debuglog "HumidityHandler: state.OverThreshold = ${state.OverThreshold}"
                debuglog "HumidityHandler: state.AutomaticallyTurnedOn = ${state.AutomaticallyTurnedOn}"
-               debuglog "HumidityHandler: state.TurnOffLaterStarted = ${state.TurnOffLaterStarted}"  
-               
-               debuglog "HumidityHandler: Before"
+               debuglog "HumidityHandler: state.TurnOffLaterStarted = ${state.TurnOffLaterStarted}"               
+	debuglog "HumidityHandler: Before"
                debuglog "HumidityHandler: state.lastHumidity = ${state.lastHumidity}"
     debuglog "HumidityHandler: state.lastHumidityDate = ${state.lastHumidityDate}"
     debuglog "HumidityHandler: state.currentHumidity = ${state.currentHumidity}"
@@ -107,21 +105,21 @@ def HumidityHandler(evt)
                state.lastHumidityDate = state.currentHumidityDate
                state.lastHumidity = state.currentHumidity
                state.currentHumidity = Double.parseDouble(evt.value.replace("%", ""))
-               state.currentHumidityDate = evt.date
+               state.currentHumidityDate = evt.date.time
                state.HumidityChangeRate = state.currentHumidity - state.lastHumidity
                if(state.currentHumidity>state.HighestHumidity)
         {
             state.HighestHumidity = state.currentHumidity
         }
-               state.targetHumidity = state.StartingHumidity+HumidityDropLimit/100*(state.HighestHumidity-state.StartingHumidity)
-               debuglog "HumidityHandler: After"
+               state.targetHumidity = state.StartingHumidity+HumidityDropLimit/100*(state.HighestHumidity-state.StartingHumidity)              
+	debuglog "HumidityHandler: After"
                debuglog "HumidityHandler: state.lastHumidity = ${state.lastHumidity}"
-    debuglog "HumidityHandler: state.lastHumidityDate = ${state.lastHumidityDate}"
-    debuglog "HumidityHandler: state.currentHumidity = ${state.currentHumidity}"
-    debuglog "HumidityHandler: state.currentHumidityDate = ${state.currentHumidityDate}"
-    debuglog "HumidityHandler: state.StartingHumidity = ${state.StartingHumidity}"
-    debuglog "HumidityHandler: state.HighestHumidity = ${state.HighestHumidity}"
-               debuglog "HumidityHandler: state.HumidityChangeRate = ${state.HumidityChangeRate}"
+			debuglog "HumidityHandler: state.lastHumidityDate = ${state.lastHumidityDate}"
+			debuglog "HumidityHandler: state.currentHumidity = ${state.currentHumidity}"
+			debuglog "HumidityHandler: state.currentHumidityDate = ${state.currentHumidityDate}"
+			debuglog "HumidityHandler: state.StartingHumidity = ${state.StartingHumidity}"
+			debuglog "HumidityHandler: state.HighestHumidity = ${state.HighestHumidity}"
+               debuglog "HumidityHandler: state.HumidityChangeRate = ${state.HumidityChangeRate.round(2)}"
                debuglog "HumidityHandler: state.targetHumidity = ${state.targetHumidity}"
     
         //if the humidity is high (or rising fast) and the fan is off, kick on the fan
