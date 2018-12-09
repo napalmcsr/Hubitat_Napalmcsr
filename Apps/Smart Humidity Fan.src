@@ -103,7 +103,22 @@ def HumidityHandler(evt)
                debuglog "HumidityHandler: state.targetHumidity = ${state.targetHumidity}"
                state.OverThreshold = CheckThreshold(evt)
                state.lastHumidityDate = state.currentHumidityDate
-               state.lastHumidity = state.currentHumidity
+				if (state.currentHumidity)
+				{
+               		state.lastHumidity = state.currentHumidity
+				}
+				else
+				{
+					state.lastHumidity = 100
+				}
+				if (!state.StartingHumidity)
+				{
+					state.StartingHumidity = 100
+				}
+				if (!state.HighestHumidity)
+				{
+					state.HighestHumidity = 100
+				}
                state.currentHumidity = Double.parseDouble(evt.value.replace("%", ""))
                state.currentHumidityDate = evt.date.time
                state.HumidityChangeRate = state.currentHumidity - state.lastHumidity
