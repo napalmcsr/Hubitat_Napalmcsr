@@ -92,7 +92,17 @@ def HumidityHandler(evt)
     infolog "HumidityHandler:running humidity check"
                debuglog "HumidityHandler: state.OverThreshold = ${state.OverThreshold}"
                debuglog "HumidityHandler: state.AutomaticallyTurnedOn = ${state.AutomaticallyTurnedOn}"
-               debuglog "HumidityHandler: state.TurnOffLaterStarted = ${state.TurnOffLaterStarted}"
+               debuglog "HumidityHandler: state.TurnOffLaterStarted = ${state.TurnOffLaterStarted}"  
+               
+               debuglog "HumidityHandler: Before"
+               debuglog "HumidityHandler: state.lastHumidity = ${state.lastHumidity}"
+    debuglog "HumidityHandler: state.lastHumidityDate = ${state.lastHumidityDate}"
+    debuglog "HumidityHandler: state.currentHumidity = ${state.currentHumidity}"
+    debuglog "HumidityHandler: state.currentHumidityDate = ${state.currentHumidityDate}"
+    debuglog "HumidityHandler: state.StartingHumidity = ${state.StartingHumidity}"
+    debuglog "HumidityHandler: state.HighestHumidity = ${state.HighestHumidity}"
+               debuglog "HumidityHandler: state.HumidityChangeRate = ${state.HumidityChangeRate}"
+               debuglog "HumidityHandler: state.targetHumidity = ${state.targetHumidity}"
                state.OverThreshold = CheckThreshold(evt)
                state.lastHumidityDate = state.currentHumidityDate
                state.lastHumidity = state.currentHumidity
@@ -104,6 +114,7 @@ def HumidityHandler(evt)
             state.HighestHumidity = state.currentHumidity
         }
                state.targetHumidity = state.StartingHumidity+HumidityDropLimit/100*(state.HighestHumidity-state.StartingHumidity)
+               debuglog "HumidityHandler: After"
                debuglog "HumidityHandler: state.lastHumidity = ${state.lastHumidity}"
     debuglog "HumidityHandler: state.lastHumidityDate = ${state.lastHumidityDate}"
     debuglog "HumidityHandler: state.currentHumidity = ${state.currentHumidity}"
