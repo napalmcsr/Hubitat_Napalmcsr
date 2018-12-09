@@ -67,6 +67,7 @@ preferences
 def installed()
 {
     initialize()
+    state.lastHumidity = 300
 }
 
 def updated()
