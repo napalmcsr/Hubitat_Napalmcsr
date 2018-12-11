@@ -16,6 +16,7 @@ definition(
     author: "Craig Romei",
     description: "turn off a switch if events haven't happened lately.",
     category: "Convenience",
+    parent: "napalmcsr:Dead Man Parent",
     iconUrl: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg",
     iconX2Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg",
     iconX3Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg"
@@ -30,21 +31,22 @@ preferences
         section("Devices")
     {
         paragraph "Select the sensor type and the switch to control"
+			input "DeadmanSwitch", "capability.switch", title: "Switch:", required: true
 		input(
-            			name			: "Humidity"
+            			name			: "UseHumidity"
                			,title			: "Use Humidity Sensor?" 
                			,multiple		: false
                			,required		: true
                			,type			: "bool"
                 		,submitOnChange	: true
                 		,defaultValue	: false
-            		)     
-		if (Humidity)		
+            		)   
+		if (UseHumidity)		
 		{
                 input "HumiditySensor", "capability.relativeHumidityMeasurement", title: "Humidity Sensor:", required: true
         }
 		input(
-            			name			: "Temperature"
+            			name			: "UseTemperature"
                			,title			: "Use Temperature Sensor?" 
                			,multiple		: false
                			,required		: true
@@ -52,9 +54,9 @@ preferences
                 		,submitOnChange	: true
                 		,defaultValue	: false
             		)
-		if (Temperature)
+		if (UseTemperature)
 		{
-			input "FanSwitch", "capability.switch", title: "Fan Location:", required: true
+                input "TemperatureSensor", "capability.temperatureMeasurement", title: "Temperature Sensor:", required: true
 		}
 	}
 		section("Settings")
@@ -62,9 +64,9 @@ preferences
 			input(
 			name: 'delayNum',
 			type: 'number',
-			title: 'Delay before switching off (default is 3,)',
+			title: 'Delay in minutes before switching off (default is 60)',
 			required: true,
-			defaultValue: 3
+			defaultValue: 60
 		)	
 		}
 
@@ -96,19 +98,25 @@ def updated()
 def initialize()
 {
     infolog "Initializing"
-	if (Humidity)
+	if (UseHumidity)
 	{
-		subscribe(HumiditySensor, "HumiditySensor", ReadingHandler)
+		subscribe(HumiditySensor, "humidity", ReadingHandler)
 	}
-	if (Temperature)
+	if (UseTemperature)
 	{
-		subscribe(TemperatureSensor, "TemperatureSensor", ReadingHandler)
+		subscribe(TemperatureSensor, "temperature", ReadingHandler)
 	}
-    subscribe(DeadmanSwitch, "switch", DeadmanSwitchHandler)
+    //subscribe(DeadmanSwitch, "switch", DeadmanSwitchHandler)
     version()
 }
-def ReadingHandler()
+def ReadingHandler(evt)
 {
+    debuglog "ReadingHandler:Got event"
+    if(DeadmanSwitch.currentValue("switch") == "off")
+    {
+    	infolog "ReadingHandler:Switch turned on"
+        DeadmanSwitch.on()
+	}
 	runIn(delayNum*60, TurnOffSwitch, [overwrite: true])
 }
 def DeadmanSwitchHandler()
@@ -117,7 +125,7 @@ def DeadmanSwitchHandler()
 }
 def TurnOffSwitch()
 {
-    if(FanSwitch.currentValue("switch") == "on")
+    if(DeadmanSwitch.currentValue("switch") == "on")
     {
         infolog "TurnOffSwitch:Switch Off"
         DeadmanSwitch.off()
@@ -208,5 +216,4 @@ def setVersion(){
                 state.version = "1.0.0" // Version number of this app
                 state.InternalName = "DeadManChild"   // this is the name used in the JSON file for this app
 }
-
 
