@@ -1,9 +1,7 @@
 /**
 *  Dead Man Parent
 *
-*  Turns on a fan when you start taking a shower... turns it back off when you are done.
-*    -Uses humidity change rate for rapid response
-*    -Timeout option when manaully controled (for stench mitigation)
+*  Turns on a switch when it receives a humidity or temperature event, turns it off after it doesn't see one for an amount of time.
 *
 *  Copyright 2018 Craig Romei
 *  GNU General Public License v2 (https://www.gnu.org/licenses/gpl-2.0.txt)
@@ -27,11 +25,22 @@ preferences{
     }
 		 if (installed){
 			section("Deadman Switches"){
-				app(name: "Deadman Switches", appName: "Dead Man Child", namespace: "napalmcsr", description: "Create New Deadman Switch...", multiple: true)	
+				app(name: "Deadman Switches", appName: "Dead Man Child", namespace: "napalmcsr", title: "<b>Add a new switch</b>",description: "Create New Deadman Switch...", multiple: true)	
 			}
 		 }
-)			 
-			 
+}
+def installed() {initialize()}
+def updated() {initialize()}
+def initialize() {
+    unsubscribe()
+	version()
+    
+    log.info "Initialised with settings: ${settings}"
+    log.info "There are ${childApps.size()} installed child apps"
+    childApps.each {child ->
+    log.info "Child app: ${child.label}"
+    }    
+}
 			 
 			 
 			
@@ -134,5 +143,5 @@ def updateCheck(){
 
 def setVersion(){
                 state.version = "1.0.0" // Version number of this app
-                state.InternalName = "DeadManChild"   // this is the name used in the JSON file for this app
+                state.InternalName = "DeadManParent"   // this is the name used in the JSON file for this app
 }
