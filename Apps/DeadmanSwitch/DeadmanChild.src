@@ -58,6 +58,19 @@ preferences
 		{
                 input "TemperatureSensor", "capability.temperatureMeasurement", title: "Temperature Sensor:", required: true
 		}
+		input(
+            			name			: "UseMotion"
+               			,title			: "Use Motion Sensor?" 
+               			,multiple		: false
+               			,required		: true
+               			,type			: "bool"
+                		,submitOnChange	: true
+                		,defaultValue	: false
+            		)
+		if (UseMotion)
+		{
+                input "MotionSensor", "capability.motionSensor", title: "Motion Sensor:", required: true
+		}
 	}
 		section("Settings")
 		{
@@ -105,6 +118,10 @@ def initialize()
 	if (UseTemperature)
 	{
 		subscribe(TemperatureSensor, "temperature", ReadingHandler)
+	}
+	if (UseMotion)
+	{
+		subscribe(MotionSensor, "motion", ReadingHandler)
 	}
     //subscribe(DeadmanSwitch, "switch", DeadmanSwitchHandler)
     version()
@@ -213,7 +230,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-                state.version = "1.0.0" // Version number of this app
+                state.version = "1.0.1" // Version number of this app
                 state.InternalName = "DeadManChild"   // this is the name used in the JSON file for this app
 }
 
