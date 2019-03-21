@@ -1,9 +1,7 @@
 /**
 *  Virtual Thermostat Temperature Update Child
 *
-*  Turns on a fan when you start taking a shower... turns it back off when you are done.
-*    -Uses humidity change rate for rapid response
-*    -Timeout option when manaully controled (for stench mitigation)
+*  Updates the temperature of a virtual thermostat using a temp sensor
 *
 *  Copyright 2018 Craig Romei
 *  GNU General Public License v2 (https://www.gnu.org/licenses/gpl-2.0.txt)
