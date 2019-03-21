@@ -6,6 +6,8 @@
 		"Application":{
 			"DeadManChild":"1.0.2",
 			"DeadManParent":"1.0.0",
+			"VirtThermTempChild":"1.0.0",
+			"VirtThermTempParent":"1.0.0",
 			"SmartHumidityFan":"2.0.1",
 			"KeenectMaster":"1.4.0",
 			"KeenectZone":"1.4.0"
