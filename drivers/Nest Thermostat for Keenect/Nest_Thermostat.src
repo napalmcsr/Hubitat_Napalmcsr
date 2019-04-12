@@ -257,7 +257,7 @@ private updateState(args) {
 	sendEvent(name: 'hasLeaf', value: data.has_leaf)
 
 	def state = data.hvac_state == 'off' ? 'idle' : data.hvac_state
-	if (data.fan_timer_active && (state == 'off')) {
+	if (data.fan_timer_active && (state == 'idle')) {
 		state = 'fan'
 	}
 	log.trace "fan_timer_active: ${data.fan_timer_active}"
