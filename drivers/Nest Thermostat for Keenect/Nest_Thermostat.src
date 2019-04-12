@@ -256,12 +256,12 @@ private updateState(args) {
 	sendEvent(name: 'nestPresence', value: away ? 'away' : 'home')
 	sendEvent(name: 'hasLeaf', value: data.has_leaf)
 
-	def state = data.hvac_state //== 'off' ? 'idle' : data.hvac_state
+	def state = data.hvac_state == 'off' ? 'idle' : data.hvac_state
 	if (data.fan_timer_active && (state == 'off')) {
 		state = 'fan'
 	}
 	log.trace "fan_timer_active: ${data.fan_timer_active}"
-	log.trace "${data.fan_timer_active && (state == 'off')}"
+	log.trace "${data.fan_timer_active && (state == 'idle')}"
 	 log.trace "thermostatOperatingState: ${state}"
 	sendEvent(name: 'thermostatOperatingState', value: state)
 
