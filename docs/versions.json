@@ -10,13 +10,17 @@
 			"VirtThermTempParent":"1.0.0",
 			"SmartHumidityFan":"2.0.1",
 			"KeenectMaster":"1.4.0",
-			"KeenectZone":"1.4.0"
+			"KeenectZone":"1.4.0",
+			"KeenectLiteMaster":"1.0.0",
+			"KeenectLiteZone":"1.0.0"
 		},
 		"UpdateInfo":{
 			"Application":{
 				"SmartHumidityFan":"<b>Update Information: </b> Updated: 12/09/2018 - simplified the humidity finding algo ",
 				"KeenectMaster":"<b>Update Information: </b> Updated: 10/11/2018 - initial Versioning",
-				"KeenectZone":"<b>Update Information: </b> Updated: 10/11/2018 - initial Versioning"
+				"KeenectZone":"<b>Update Information: </b> Updated: 10/11/2018 - initial Versioning",
+				"KeenectLiteMaster":"<b>Update Information: </b> Updated: 4/12/2019 - initial Versioning",
+				"KeenectLiteZone":"<b>Update Information: </b> Updated: 4/12/2019 - initial Versioning"
 			}
 		}
 	}
