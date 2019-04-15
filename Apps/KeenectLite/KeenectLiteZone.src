@@ -1,0 +1,329 @@
+/**
+ *  V1.0.0 Init try
+ *
+ *  Copyright 2019 Craig Romei
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License. You may obtain a copy of the License at:
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+ *  for the specific language governing permissions and limitations under the License.
+ *
+ */
+ 
+definition(
+    name: "KeenectLiteZone",
+    namespace: "Keenect",
+    author: "Craig Romei",
+    description: "zone application for 'Keenect', do not install directly.",
+    category: "My Apps",
+    parent: "Keenect:KeenectLiteMaster",
+    iconUrl: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/keenect/clipart-thermometer-thermometer-clipart-free-6-thermometer-clip-art-clipartix-free-clipart.jpg",
+    iconX2Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/keenect/clipart-thermometer-thermometer-clipart-free-6-thermometer-clip-art-clipartix-free-clipart.jpg",
+	iconX3Url	: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/keenect/clipart-thermometer-thermometer-clipart-free-6-thermometer-clip-art-clipartix-free-clipart.jpg"
+   
+)
+
+preferences
+{
+    section("Versioning")
+    {
+        display()
+    }
+	section("Devices")
+	{
+		input "tStat", "capability.thermostat", title: "Zone Virtual Thermostat for setting zone setpoints", required: true
+		input "vent", "capability.switchLevel", title: "Zone Vent", required: true
+		input "tempSensor", "capability.temperatureMeasurement", title: "Zone Temperature Sensor", multiple: false, required: true
+	}
+	section("Settings")
+	{
+		input name: "minVo", title : "Minimum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
+		input name: "maxVo", title : "Maximum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
+		input name: "FanVo", title : "Fan mode opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
+	}
+	section("Logging")
+	{input(
+		name : "logLevel"
+		,title : "IDE logging level" 
+		,multiple : false
+		,required : true
+		,type : "enum"
+		,options  : getLogLevels()
+		,submitOnChange : false
+		,defaultValue : "0"
+		)  
+	}
+}
+def installed()
+{
+    initialize()
+}
+
+def updated()
+{
+    unsubscribe()
+    initialize()
+}
+
+def initialize(){
+	infolog "Init"
+	debuglog "Subscribe to tempSensor"
+	subscribe(tempSensor, "temperature", tempHandler)
+	debuglog "Subscribe to vent"
+	subscribe(vent, "level", ventHandler)
+	debuglog "Subscribe to Tstat"
+	subscribe(tStat, "heatingSetpoint", setTstatHSP)
+	subscribe(tStat, "coolingSetpoint", setTstatCSP)
+	debuglog "Getting Thermostat Heating Setpoint" 
+	state.zoneHeatSetpoint = tStat.currentValue("heatingSetpoint")
+	debuglog "Getting Thermostat Cooling Setpoint" 
+	state.zoneColdSetpoint = tStat.currentValue("coolingSetpoint")
+	debuglog "Getting current Zone Temperature" 
+	state.zoneTemperature = tempSensor.currentValue("temperature")
+	debuglog "Getting House Thermostat State and evaluating zone"
+	state.mainTstatState = parent.ChildGetMainTstatState()
+    zoneEvaluate()
+	infolog "Done init"
+}
+
+def MainTstatStateChange(mainTStatState) {
+	infolog "Running MainTstatStateChange"
+	state.mainTstatState = mainTStatState
+	zoneEvaluate()
+}
+
+def setTstatHSP(evt) {
+	infolog "Running setTstatHSP"
+	state.zoneHeatSetpoint =evt.value.toFloat()
+	debuglog "Hot setpoint set to ${state.zoneHeatSetpoint}"
+	zoneEvaluate()
+}
+
+def setTstatCSP(evt) {
+	infolog "Running setTstatCSP"
+	state.zoneColdSetpoint = evt.value.toFloat()
+	debuglog "Cold setpoint set to ${state.zoneColdSetpoint}"
+	zoneEvaluate()
+}
+
+def tempHandler(evt) {
+	infolog "Running tempHandler"
+	state.currentTemperature = evt.value.toFloat()
+	debuglog "Zone Temperature set to ${state.currentTemperature}"
+	zoneEvaluate()
+}
+
+def ventHandler(evt) {
+	infolog "Running ventHandler"
+	state.VentOpening = evt.value.toFloat()
+	debuglog "Vent was opened to set to ${state.VentOpening}"
+}
+
+def zoneEvaluate(){
+	infolog "Running zoneEvaluate"
+	Map VentParams = [:]
+   
+    debuglog "evaluateVentsOpening: ventmode: ${state.mainTstatState}"
+	if (state.mainTstatState!="IDLE"){
+		switch (state.mainTstatState){
+			case "HEATING" :
+				VentParams = SetHeatVentParams()
+				break
+			case "COOLING" :
+				VentParams = SetCoolVentParams()
+				break
+			case "FAN ONLY" :
+				VentParams = SetFanVentParams()
+				break
+			default :
+				VentParams = SetErrorVentParams()
+				break
+				   
+		} 
+		infolog "evaluateVentsOpening:Calculate Vent Opening"
+		CalculteVent(VentParams)
+		infolog "evaluateVentsOpening:Set The Vent"
+		state.zoneVoLocal =  VentParams.ventOpening
+		setVents(VentParams.ventOpening)
+	}
+	infolog "evaluateVentsOpening: --EXIT"
+}
+
+
+def CalculteVent(Map VentParams){
+	if (VentParams.tempDelta<0){
+		VentParams.ventOpening = 1
+	} else{
+    	
+		VentParams.ventOpening = Math.round(VentParams.tempDelta*VentParams.ventSlope+VentParams.ventIntercept)
+	}
+	if (VentParams.ventOpening>settings.maxVo.toInteger()){
+		debuglog "CalculteVent- VentParams.ventOpening greater than Max"
+		VentParams.ventOpening = settings.maxVo.toInteger()
+	}
+	if (VentParams.ventOpening<settings.minVo.toInteger()){
+		debuglog"CalculteVent- VentParams.ventOpening less than Min"
+		VentParams.ventOpening = settings.minVo.toInteger()
+	}
+	debuglog "CalculteVent- VentParams.ventOpening after limit checks: ${VentParams.ventOpening}"
+	
+}
+
+	
+def SetCoolVentParams(){
+	Map resultMap = [:]
+	debuglog "Setting vent Params Cool"
+    state.activeSetPoint = state.zoneColdSetpoint
+	resultMap.tempDelta = state.currentTemperature - state.zoneColdSetpoint
+	debuglog "SetCoolVentParams- resultMap.tempDelta: ${resultMap.tempDelta}"
+	resultMap.ventSlope = 70
+	resultMap.ventIntercept = 30
+	resultMap.ventOpening = 50
+	return resultMap
+}
+
+def SetHeatVentParams(){
+	Map resultMap = [:]
+	debuglog "Setting vent Params Cool"
+    state.activeSetPoint = state.zoneHeatSetpoint
+	resultMap.tempDelta = state.zoneHeatSetpoint - state.currentTemperature
+	debuglog "SetCoolVentParams- resultMap.tempDelta: ${resultMap.tempDelta}"
+	resultMap.ventSlope = 55
+	resultMap.ventIntercept = 14
+	resultMap.ventOpening = 50
+	return resultMap
+}
+
+def SetFanVentParams(){
+	Map resultMap = [:]
+	debuglog "Setting vent Params Fan"
+	def zoneTempLocal = state.zoneTemp
+	resultMap.tempDelta = 0.1
+	resultMap.ventSlope = 0
+	resultMap.ventIntercept = settings.FanVo.toInteger()
+	resultMap.ventOpening = 50
+	return resultMap
+}
+
+def SetErrorVentParams(){
+	Map resultMap = [:]
+	debuglog "Setting vent Params ERROR"
+	resultMap.tempDelta = 0.1
+	resultMap.ventSlope = 0	
+	resultMap.ventIntercept = settings.maxVo.toInteger()
+	resultMap.ventOpening = 50
+	resultMap.allowReduction = false
+	return resultMap
+}
+
+
+
+def setVents(newVo){
+	debuglog "Opening Vent to ${newVo}"
+	if (((state.VentOpening-newVo)>5) || ((state.VentOpening-newVo)<-5)){
+		debuglog "Vent was far enough away to move"
+		vent.setLevel(newVo)
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+def debuglog(statement)
+{   
+    def logL = 0
+    if (logLevel) logL = logLevel.toInteger()
+    if (logL == 0) {return}//bail
+    else if (logL >= 2)
+	{
+	  	log.debug(statement)
+	}
+}
+def infolog(statement)
+{       
+    def logL = 0
+    if (logLevel) logL = logLevel.toInteger()
+    if (logL == 0) {return}//bail
+    else if (logL >= 1)
+    {
+    	log.info(statement)
+    }
+}
+def getLogLevels(){
+    return [["0":"None"],["1":"Running"],["2":"NeedHelp"]]
+}
+def version(){
+        unschedule()
+        schedule("0 0 9 ? * FRI *", updateCheck) // Cron schedule - How often to perform the update check - (This example is 9am every Friday)
+        updateCheck()  
+}
+
+def display(){
+	updateCheck()
+	debuglog "state.Status: ${state.Status}"
+        if(state.Status){
+        section{paragraph "Version: $state.version -  $state.Copyright"}
+        
+        if(state.Status != "Current"){
+        section{ 
+        paragraph "$state.Status"
+        paragraph "$state.UpdateInfo"
+    }
+    }
+}
+}
+
+
+def updateCheck(){
+    setVersion()
+        def paramsUD = [uri: "https://napalmcsr.github.io/Hubitat_Napalmcsr/versions.json"]   // This is the URI & path to your hosted JSON file
+       try {
+        httpGet(paramsUD) { respUD ->
+//  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
+                def copyrightRead = (respUD.data.copyright)
+                state.Copyright = copyrightRead
+            def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
+            def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
+                def currentVer = state.version.replace(".", "")
+                state.UpdateInfo = (respUD.data.versions.UpdateInfo.Application.(state.InternalName))
+                state.author = (respUD.data.author)
+           
+                if(newVer == "NLS"){
+            state.Status = "<b>** This app is no longer supported by $state.author  **</b> (But you may continue to use it)"       
+            log.warn "** This app is no longer supported by $state.author **"      
+                }           
+                else if(currentVer < newVer){
+        state.Status = "<b>New Version Available (Version: $newVerRaw)</b>"
+        log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
+        log.warn "** $state.UpdateInfo **"
+                } 
+                else{ 
+                state.Status = "Current"
+                log.info "You are using the current version of this app"
+                }
+                                       }
+        } 
+        catch (e) {
+            state.Status = "Error"
+        log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
+                }
+                
+    
+        //     
+}
+
+def setVersion(){
+                state.version = "1.0.0" // Version number of this app
+                state.InternalName = "KeenectLiteZone"   // this is the name used in the JSON file for this app
+				}
