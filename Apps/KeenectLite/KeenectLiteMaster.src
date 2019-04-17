@@ -43,7 +43,7 @@ preferences
 	{
 		if (installed){
 			section("Zones"){
-				app(name: "childZones", appName: "KeenectLiteZone", namespace: "Keenect", description: "Create New Vent Zone...", multiple: true)	
+				app(name: "childZones", appName: "KeenectLiteZone", namespace: "Keenect", title: "Create New Vent Zone...", multiple: true)	
 			}
         }
 		
