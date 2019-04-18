@@ -86,6 +86,7 @@ def initialize(){
 	state.zoneTemperature = tempSensor.currentValue("temperature")
 	debuglog "Getting House Thermostat State and evaluating zone"
 	state.mainTstatState = parent.ChildGetMainTstatState()
+	state.VentOpening = 0
     zoneEvaluate()
 	infolog "Done init"
 }
@@ -224,7 +225,7 @@ def SetErrorVentParams(){
 
 def setVents(newVo){
 	debuglog "Opening Vent to ${newVo}"
-	if (((state.VentOpening-newVo.toInteger())>5) || ((state.VentOpening-newVo.toInteger())<-5)){
+	if (((state.VentOpening-newVo)>5) || ((state.VentOpening-newVo)<-5)){
 		debuglog "Vent was far enough away to move"
 		vent.setLevel(newVo)
 	}
