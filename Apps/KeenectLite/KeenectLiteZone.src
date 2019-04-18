@@ -224,7 +224,7 @@ def SetErrorVentParams(){
 
 def setVents(newVo){
 	debuglog "Opening Vent to ${newVo}"
-	if (((state.VentOpening-newVo)>5) || ((state.VentOpening-newVo)<-5)){
+	if (((state.VentOpening-newVo.toInteger())>5) || ((state.VentOpening-newVo.toInteger())<-5)){
 		debuglog "Vent was far enough away to move"
 		vent.setLevel(newVo)
 	}
