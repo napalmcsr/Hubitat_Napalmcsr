@@ -41,8 +41,10 @@ preferences
 	}
 	section("Settings")
 	{
-		input name: "minVo", title : "Minimum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
-		input name: "maxVo", title : "Maximum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
+		input name: "heatMinVo", title : "Heating minimum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
+		input name: "heatMaxVo", title : "Heating maximum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "100"
+		input name: "coldMinVo", title : "Cooling minimum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
+		input name: "coldMaxVo", title : "Cooling maximum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "100"
 		input name: "FanVo", title : "Fan mode opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
 	}
 	section("Logging")
@@ -162,13 +164,13 @@ def CalculteVent(Map VentParams){
     	
 		VentParams.ventOpening = Math.round(VentParams.tempDelta*VentParams.ventSlope+VentParams.ventIntercept)
 	}
-	if (VentParams.ventOpening>settings.maxVo.toInteger()){
+	if (VentParams.ventOpening>VentParams.MaxVo.toInteger()){
 		debuglog "CalculteVent- VentParams.ventOpening greater than Max"
-		VentParams.ventOpening = settings.maxVo.toInteger()
+		VentParams.ventOpening = VentParams.MaxVo.toInteger()
 	}
-	if (VentParams.ventOpening<settings.minVo.toInteger()){
+	if (VentParams.ventOpening<VentParams.MinVo.toInteger()){
 		debuglog"CalculteVent- VentParams.ventOpening less than Min"
-		VentParams.ventOpening = settings.minVo.toInteger()
+		VentParams.ventOpening = VentParams.MinVo.toInteger()
 	}
 	debuglog "CalculteVent- VentParams.ventOpening after limit checks: ${VentParams.ventOpening}"
 	
@@ -184,6 +186,8 @@ def SetCoolVentParams(){
 	resultMap.ventSlope = 70
 	resultMap.ventIntercept = 30
 	resultMap.ventOpening = 50
+	resultMap.MaxVo = coldMaxVo
+	resultMap.MinVo = coldMinVo
 	return resultMap
 }
 
@@ -196,6 +200,8 @@ def SetHeatVentParams(){
 	resultMap.ventSlope = 55
 	resultMap.ventIntercept = 14
 	resultMap.ventOpening = 50
+	resultMap.MaxVo = heatMaxVo
+	resultMap.MinVo = heatMinVo
 	return resultMap
 }
 
@@ -207,6 +213,8 @@ def SetFanVentParams(){
 	resultMap.ventSlope = 0
 	resultMap.ventIntercept = settings.FanVo.toInteger()
 	resultMap.ventOpening = 50
+	resultMap.MaxVo = 100
+	resultMap.MinVo = 0
 	return resultMap
 }
 
@@ -217,7 +225,8 @@ def SetErrorVentParams(){
 	resultMap.ventSlope = 0	
 	resultMap.ventIntercept = settings.maxVo.toInteger()
 	resultMap.ventOpening = 50
-	resultMap.allowReduction = false
+	resultMap.MaxVo = 100
+	resultMap.MinVo = 0
 	return resultMap
 }
 
@@ -225,7 +234,7 @@ def SetErrorVentParams(){
 
 def setVents(newVo){
 	debuglog "Opening Vent to ${newVo}"
-	if (((state.VentOpening-newVo)>5) || ((state.VentOpening-newVo)<-5)){
+	if (((state.VentOpening-newVo.toInteger())>5) || ((state.VentOpening-newVo.toInteger())<-5)){
 		debuglog "Vent was far enough away to move"
 		vent.setLevel(newVo)
 	}
@@ -325,6 +334,6 @@ def updateCheck(){
 }
 
 def setVersion(){
-                state.version = "1.0.0" // Version number of this app
+                state.version = "1.0.1" // Version number of this app
                 state.InternalName = "KeenectLiteZone"   // this is the name used in the JSON file for this app
 				}
