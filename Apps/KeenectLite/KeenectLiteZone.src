@@ -1,5 +1,7 @@
 /**
  *  V1.0.0 Init try
+ *  V1.0.1 Added Heat and Cool vent opening limits
+ *  V1.0.2 Added Multiple Vent control
  *
  *  Copyright 2019 Craig Romei
  *
@@ -36,7 +38,7 @@ preferences
 	section("Devices")
 	{
 		input "tStat", "capability.thermostat", title: "Zone Virtual Thermostat for setting zone setpoints", required: true
-		input "vent", "capability.switchLevel", title: "Zone Vent", required: true
+		input "vents", "capability.switchLevel", title: "Zone Vent",multiple: true, required: true
 		input "tempSensor", "capability.temperatureMeasurement", title: "Zone Temperature Sensor", multiple: false, required: true
 	}
 	section("Settings")
@@ -75,8 +77,8 @@ def initialize(){
 	infolog "Init"
 	debuglog "Subscribe to tempSensor"
 	subscribe(tempSensor, "temperature", tempHandler)
-	debuglog "Subscribe to vent"
-	subscribe(vent, "level", ventHandler)
+	debuglog "Subscribe to vents"
+	subscribe(vents, "level", ventHandler)
 	debuglog "Subscribe to Tstat"
 	subscribe(tStat, "heatingSetpoint", setTstatHSP)
 	subscribe(tStat, "coolingSetpoint", setTstatCSP)
@@ -88,7 +90,12 @@ def initialize(){
 	state.zoneTemperature = tempSensor.currentValue("temperature")
 	debuglog "Getting House Thermostat State and evaluating zone"
 	state.mainTstatState = parent.ChildGetMainTstatState()
-	state.VentOpening = 0
+	debuglog "Getting All Vent Opening"
+	state.VentOpeningMap = [:]
+	vents.each{ vent ->
+		debuglog "Getting Vent ${vent}"
+		state.VentOpeningMap[vent.displayName] =vent.currentValue("level")
+	}
     zoneEvaluate()
 	infolog "Done init"
 }
@@ -121,9 +128,9 @@ def tempHandler(evt) {
 }
 
 def ventHandler(evt) {
-	infolog "Running ventHandler"
-	state.VentOpening = evt.value.toFloat()
-	debuglog "Vent was opened to set to ${state.VentOpening}"
+	infolog "Running ventHandler for ${evt.device}"
+	state.VentOpeningMap[evt.device]=evt.value.toInteger()
+	debuglog "${evt.device} was opened to set to ${evt.value}"
 }
 
 def zoneEvaluate(){
@@ -234,12 +241,14 @@ def SetErrorVentParams(){
 
 def setVents(newVo){
 	debuglog "Opening Vent to ${newVo}"
-	if (((state.VentOpening-newVo.toInteger())>5) || ((state.VentOpening-newVo.toInteger())<-5)){
-		debuglog "Vent was far enough away to move"
-		vent.setLevel(newVo)
+		vents.each{vent ->
+			debuglog "${vent} : ${state.VentOpeningMap[vent.displayName]}"
+			if (((state.VentOpeningMap[vent.displayName]-newVo.toInteger())>5) || ((state.VentOpeningMap[vent.displayName]-newVo.toInteger())<-5)){
+			debuglog "Vent was far enough away to move"
+			vent.setLevel(newVo)
+		}
 	}
 }
-
 
 
 
@@ -334,6 +343,6 @@ def updateCheck(){
 }
 
 def setVersion(){
-                state.version = "1.0.1" // Version number of this app
+                state.version = "1.0.2" // Version number of this app
                 state.InternalName = "KeenectLiteZone"   // this is the name used in the JSON file for this app
 				}
