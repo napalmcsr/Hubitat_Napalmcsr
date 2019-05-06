@@ -2,6 +2,7 @@
  *  V1.0.0 Init try
  *  V1.0.1 Added Heat and Cool vent opening limits
  *  V1.0.2 Added Multiple Vent control
+ *  V1.0.3 Fixed error in Error params
  *
  *  Copyright 2019 Craig Romei
  *
@@ -230,8 +231,8 @@ def SetErrorVentParams(){
 	debuglog "Setting vent Params ERROR"
 	resultMap.tempDelta = 0.1
 	resultMap.ventSlope = 0	
-	resultMap.ventIntercept = settings.maxVo.toInteger()
-	resultMap.ventOpening = 50
+	resultMap.ventIntercept = 100
+	resultMap.ventOpening = 100
 	resultMap.MaxVo = 100
 	resultMap.MinVo = 0
 	return resultMap
