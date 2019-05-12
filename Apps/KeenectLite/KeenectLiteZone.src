@@ -65,6 +65,8 @@ def pageConfig()
 		,defaultValue : "0"
 			)  
 		}
+		
+		 section() {label title: "Enter a name for this automation", required: false}
 	}
 }
 def installed()
@@ -100,7 +102,7 @@ def initialize(){
 	state.VentOpeningMap = [:]
 	vents.each{ vent ->
 		debuglog "Getting Vent ${vent}"
-		state.VentOpeningMap[vent.displayName] =vent.currentValue("level")
+		//state.VentOpeningMap[vent.displayName] =vent.currentValue("level")
 	}
     zoneEvaluate()
 	state.remove("state.VentOpening")
@@ -135,9 +137,13 @@ def tempHandler(evt) {
 }
 
 def ventHandler(evt) {
-	infolog "Running ventHandler for ${evt.device}"
-	state.VentOpeningMap[evt.device]=evt.value
-	debuglog "${evt.device} was opened to set to ${evt.value}"
+	infolog "Running ventHandler for ${evt.device} value: ${evt.value}"
+	infolog "state.VentOpeningMap =  ${state.VentOpeningMap}"
+	
+	state.VentOpeningMap.put(evt.device,evt.value)
+	infolog "state.VentOpeningMap after =  ${state.VentOpeningMap}"
+	//state.VentOpeningMap[vent.displayName] =vent.currentValue("level")
+	debuglog "${evt.device} was set to ${evt.value}"
 }
 
 def zoneEvaluate(){
@@ -250,7 +256,7 @@ def setVents(newVo){
 	debuglog "Opening Vent to ${newVo}"
 		vents.each{vent ->
 			debuglog "${vent} : ${state.VentOpeningMap[vent.displayName]}"
-			if (((state.VentOpeningMap[vent.displayName]-newVo.toInteger())>5) || ((state.VentOpeningMap[vent.displayName]-newVo.toInteger())<-5)){
+			if (((state.VentOpeningMap[vent.displayName].toInteger()-newVo.toInteger())>5) || ((state.VentOpeningMap[vent.displayName].toInteger()-newVo.toInteger())<-5)){
 			debuglog "Vent was far enough away to move"
 			vent.setLevel(newVo)
 			runIn(60*1, ventcheck)
