@@ -1,5 +1,6 @@
 /**
  *  V1.0.0 Init try
+ *  V1.0.1 Removed mode restriction
  *
  *  Copyright 2019 Craig Romei
  *
@@ -25,8 +26,12 @@
 	iconX3Url	: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/keenect/clipart-thermometer-thermometer-clipart-free-6-thermometer-clip-art-clipartix-free-clipart.jpg"
     )
 
-preferences
+preferences {
+    page(name: "pageConfig") // Doing it this way elimiates the default app name/mode options.
+}
+def pageConfig()
 {
+	dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0) {
     section("Versioning")
     {
         display()
@@ -58,7 +63,8 @@ preferences
 		,options  : getLogLevels()
 		,submitOnChange : false
 		,defaultValue : "0"
-		)  
+			)  
+		}
 	}
 }
 def installed() {initialize()}
@@ -193,6 +199,6 @@ def updateCheck(){
 }
 
 def setVersion(){
-                state.version = "1.0.0" // Version number of this app
+                state.version = "1.0.1" // Version number of this app
                 state.InternalName = "KeenectLiteMaster"   // this is the name used in the JSON file for this app
 				}
