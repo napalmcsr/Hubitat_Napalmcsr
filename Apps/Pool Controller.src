@@ -2,7 +2,7 @@
  *  Smart Pool Pump
  *
  *  Turns on a Pump when you say and runs different times during the season
- *
+ *  1 hour for every 10 dgrees
  *  Copyright 2018 Craig Romei
  *  GNU General Public License v2 (https://www.gnu.org/licenses/gpl-2.0.txt)
  *
@@ -18,9 +18,12 @@ definition(
     iconX2Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/poolpump.jpg",
     iconX3Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/poolpump.jpg"
 )
-
-preferences
+preferences {
+    page(name: "pageConfig") // Doing it this way elimiates the default app name/mode options.
+}
+def pageConfig()
 {
+	dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0) {
 	section("Pool Pump Switch")
     {
     	paragraph "The Pool Pump Switch"
@@ -28,9 +31,17 @@ preferences
     }
     section("Pool Run Limits")
     {
+        input(
+            		name		: "OutsideTemp"
+                	,title		: "Outside Temperature sensor"
+                	,multiple	: false
+                	,required	: true
+                	,type		: "capability.temperatureMeasurement"
+                    ,submitOnChange	: false
+            	) 
 		input "HotHours", "number", title: "Number of Hours to run in Hot Months:", required: true, defaultValue:  8
 		input "ColdHours", "number", title: "Number of Hours to run in Cold Months:", required: true, defaultValue:  8
-        input "TimeToRun", "time", title: "Time to execute every day"
+        input "TimeToRun", "time", title: "Time to execute every day", required: true
 	}
     section("Manual Activation")
     {
@@ -38,9 +49,9 @@ preferences
         input "ManualControlMode", "boolean", title: "Off After Manual-On?", required: true, defaultValue: true
         paragraph "How many minutes until the fan is auto-turned-off?"
         input "ManualOffMinutes", "number", title: "Auto Turn Off Time (minutes)?", required: false, defaultValue: 60
-    }
+		}
+	}
 }
-
 def installed()
 {
     initialize()
@@ -57,8 +68,26 @@ def initialize()
     log.debug "${TimeToRun}"
 	state.AutomaticallyTurnedOn =false
     subscribe(PoolSwitch, "switch", PoolSwitchHandler)
+    subscribe(OutsideTemp, "temperature", TempChangeHandler)
     schedule(TimeToRun, Timehandler)
+    state.DayTempHi = -200
+    state.DayTempLo = 200
+    log.info "initialize- state.DayTempLo: ${state.DayTempLo}, state.DayTempHi: ${state.DayTempHi}"
 }
+
+def TempChangeHandler(evt){
+    log.info "TempChangeHandler- evt name: ${evt.name}, value: ${evt.value}"
+    log.info "TempChangeHandler- Before state.DayTempLo: ${state.DayTempLo}, state.DayTempHi: ${state.DayTempHi}"
+    def fltTemp = evt.value.toFloat()
+    if (fltTemp>state.DayTempHi){ 
+    	state.DayTempHi = fltTemp
+    }  
+    if (fltTemp<state.DayTempLo){ 
+    	state.DayTempLo = fltTemp
+    }   
+    log.info "TempChangeHandler- After state.DayTempLo: ${state.DayTempLo}, state.DayTempHi: ${state.DayTempHi}"
+}
+
 
 def Timehandler()
 {
@@ -94,6 +123,9 @@ def Timehandler()
     log.debug "TimeToRun: ${TimeToRun}"
    // sendNotificationEvent("Running the Pool Pump for ${RunTime} hours.")
     runIn(TimeToRun.toInteger(), TurnOffPoolSwitch)
+    
+    state.DayTempHi = -200
+    state.DayTempLo = 200
 }
 
 def PoolSwitchHandler(evt)
