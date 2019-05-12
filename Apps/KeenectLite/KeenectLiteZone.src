@@ -136,7 +136,7 @@ def tempHandler(evt) {
 
 def ventHandler(evt) {
 	infolog "Running ventHandler for ${evt.device}"
-	state.VentOpeningMap[evt.device]=evt.value.toInteger()
+	state.VentOpeningMap[evt.device]=evt.value
 	debuglog "${evt.device} was opened to set to ${evt.value}"
 }
 
