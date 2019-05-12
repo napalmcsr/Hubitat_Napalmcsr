@@ -102,7 +102,7 @@ def initialize(){
 	state.VentOpeningMap = [:]
 	vents.each{ vent ->
 		debuglog "Getting Vent ${vent}"
-		//state.VentOpeningMap[vent.displayName] =vent.currentValue("level")
+		state.VentOpeningMap[vent.displayName] =vent.currentValue("level")
 	}
     zoneEvaluate()
 	state.remove("state.VentOpening")
