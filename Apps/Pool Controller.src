@@ -2,7 +2,7 @@
  *  Smart Pool Pump
  *
  *  Turns on a Pump when you say and runs different times during the season
- *  1 hour for every 10 dgrees
+ *  1 hour for every 10 dgrees at some point :)
  *  Copyright 2018 Craig Romei
  *  GNU General Public License v2 (https://www.gnu.org/licenses/gpl-2.0.txt)
  *
