@@ -11,16 +11,16 @@
 			"SmartHumidityFan":"2.0.1",
 			"KeenectMaster":"1.4.0",
 			"KeenectZone":"1.4.0",
-			"KeenectLiteMaster":"1.0.0",
-			"KeenectLiteZone":"1.0.3"
+			"KeenectLiteMaster":"1.0.1",
+			"KeenectLiteZone":"1.0.4"
 		},
 		"UpdateInfo":{
 			"Application":{
 				"SmartHumidityFan":"<b>Update Information: </b> Updated: 12/09/2018 - simplified the humidity finding algo ",
 				"KeenectMaster":"<b>Update Information: </b> Updated: 10/11/2018 - initial Versioning",
 				"KeenectZone":"<b>Update Information: </b> Updated: 10/11/2018 - initial Versioning",
-				"KeenectLiteMaster":"<b>Update Information: </b> Updated: 4/12/2019 - initial Versioning",
-				"KeenectLiteZone":"<b>Update Information: </b> Updated: 5/06/2019 - squashed error param bug"
+				"KeenectLiteMaster":"<b>Update Information: </b> Updated: 4/12/2019 - removed mode selection",
+				"KeenectLiteZone":"<b>Update Information: </b> Updated: 5/06/2019 - added recursive call to setVent"
 			}
 		}
 	}
