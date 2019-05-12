@@ -2,6 +2,7 @@
  *  V1.0.0 Init try
  *	V1.0.1 Added Heat and Cool vent opening limits
  *  V1.0.2 Added Multiple Vent control
+ *  V1.0.4 Fixed vent not setting issue with recursive call 
  *
  *  Copyright 2019 Craig Romei
  *
@@ -139,8 +140,11 @@ def tempHandler(evt) {
 def ventHandler(evt) {
 	infolog "Running ventHandler for ${evt.device} value: ${evt.value}"
 	infolog "state.VentOpeningMap =  ${state.VentOpeningMap}"
-	
-	state.VentOpeningMap.put(evt.device,evt.value)
+	state.VentOpeningMap = [:]
+	vents.each{ vent ->
+		debuglog "Getting Vent ${vent}"
+		state.VentOpeningMap[vent.displayName] =vent.currentValue("level")
+	}
 	infolog "state.VentOpeningMap after =  ${state.VentOpeningMap}"
 	//state.VentOpeningMap[vent.displayName] =vent.currentValue("level")
 	debuglog "${evt.device} was set to ${evt.value}"
