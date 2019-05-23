@@ -3,6 +3,7 @@
  *	V1.0.1 Added Heat and Cool vent opening limits
  *  V1.0.2 Added Multiple Vent control
  *  V1.0.4 Fixed vent not setting issue with recursive call 
+ *  V1.0.5 Added a pause control and added vent control for slow/normal and fast slope and intercepts
  *
  *  Copyright 2019 Craig Romei
  *
@@ -42,12 +43,17 @@ def pageConfig()
     }
 	section("Devices")
 	{
+		input "PauseZone", "bool", title: "Pause KeenectLite from controlling this zone.", required: true, defaultValue: false, submitOnChange: true
+	}
+	section("Devices")
+	{
 		input "tStat", "capability.thermostat", title: "Zone Virtual Thermostat for setting zone setpoints", required: true
 		input "vents", "capability.switchLevel", title: "Zone Vent",multiple: true, required: true
 		input "tempSensor", "capability.temperatureMeasurement", title: "Zone Temperature Sensor", multiple: false, required: true
 	}
 	section("Settings")
 	{
+		input "VentControlType", "enum", title: "How reactive do you want the vents? Aggressive keeps them open wider closer to target, Slow starts closing them further away from target.", submitOnChange: true,required : true,defaultValue	: "Normal", options: ["Aggressive", "Normal", "Slow"]
 		input name: "heatMinVo", title : "Heating minimum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
 		input name: "heatMaxVo", title : "Heating maximum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "100"
 		input name: "coldMinVo", title : "Cooling minimum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
@@ -182,12 +188,9 @@ def zoneEvaluate(){
 
 
 def CalculteVent(Map VentParams){
-	if (VentParams.tempDelta<0){
-		VentParams.ventOpening = 1
-	} else{
-    	
-		VentParams.ventOpening = Math.round(VentParams.tempDelta*VentParams.ventSlope+VentParams.ventIntercept)
-	}
+	
+	VentParams.ventOpening = Math.round(VentParams.tempDelta*VentParams.ventSlope.toInteger()+VentParams.ventIntercept.toInteger())
+	debuglog "CalculteVent- VentParams.ventOpening before limit checks: ${VentParams.ventOpening}"
 	if (VentParams.ventOpening>VentParams.MaxVo.toInteger()){
 		debuglog "CalculteVent- VentParams.ventOpening greater than Max"
 		VentParams.ventOpening = VentParams.MaxVo.toInteger()
@@ -207,8 +210,27 @@ def SetCoolVentParams(){
     state.activeSetPoint = state.zoneColdSetpoint
 	resultMap.tempDelta = state.currentTemperature - state.zoneColdSetpoint
 	debuglog "SetCoolVentParams- resultMap.tempDelta: ${resultMap.tempDelta}"
-	resultMap.ventSlope = 70
-	resultMap.ventIntercept = 30
+	debuglog "SetCoolVentParams- Vent Control Set to: ${VentControlType}"
+	switch (VentControlType){
+			case "Aggressive" :
+				resultMap.ventSlope = (coldMaxVo.toInteger()-coldMinVo.toInteger())*2
+				resultMap.ventIntercept = (coldMaxVo.toInteger()-coldMinVo.toInteger())/5+coldMinVo.toInteger()
+				break
+			case "Normal" :
+				resultMap.ventSlope = (coldMaxVo.toInteger()-coldMinVo.toInteger())
+				resultMap.ventIntercept = coldMinVo.toInteger()
+				break
+			case "Slow" :
+				resultMap.ventSlope = (coldMaxVo.toInteger()-coldMinVo.toInteger())/2
+				resultMap.ventIntercept = coldMinVo.toInteger()
+				break
+			default :
+				resultMap.ventSlope = (coldMaxVo.toInteger()-heatMinVo.toInteger())
+				resultMap.ventIntercept = coldMinVo.toInteger()
+				break
+		}
+	debuglog "SetCoolVentParams- ventSlope Set to: ${resultMap.ventSlope}"
+	debuglog "SetCoolVentParams- ventIntercept Set to: ${resultMap.ventIntercept}"
 	resultMap.ventOpening = 50
 	resultMap.MaxVo = coldMaxVo
 	resultMap.MinVo = coldMinVo
@@ -220,9 +242,29 @@ def SetHeatVentParams(){
 	debuglog "Setting vent Params Cool"
     state.activeSetPoint = state.zoneHeatSetpoint
 	resultMap.tempDelta = state.zoneHeatSetpoint - state.currentTemperature
-	debuglog "SetCoolVentParams- resultMap.tempDelta: ${resultMap.tempDelta}"
-	resultMap.ventSlope = 55
-	resultMap.ventIntercept = 14
+	debuglog "SetHeatVentParams- resultMap.tempDelta: ${resultMap.tempDelta}"
+	debuglog "SetHeatVentParams- Vent Control Set to: ${VentControlType}"
+	switch (VentControlType){
+			case "Aggressive" :
+				resultMap.ventSlope = (heatMaxVo.toInteger()-heatMinVo.toInteger())*2
+				resultMap.ventIntercept = (heatMaxVo.toInteger()-heatMinVo.toInteger())/5+heatMinVo.toInteger()
+				break
+			case "Normal" :
+				resultMap.ventSlope = (heatMaxVo.toInteger()-heatMinVo.toInteger())
+				resultMap.ventIntercept = heatMinVo.toInteger()
+				break
+			case "Slow" :
+				resultMap.ventSlope = (heatMaxVo.toInteger()-heatMinVo.toInteger())/2
+				resultMap.ventIntercept = heatMinVo.toInteger()
+				break
+			default :
+				resultMap.ventSlope = (heatMaxVo.toInteger()-heatMinVo.toInteger())
+				resultMap.ventIntercept = heatMinVo.toInteger()
+				break
+		}
+	debuglog "SetHeatVentParams- ventSlope Set to: ${resultMap.ventSlope}"
+	debuglog "SetHeatVentParams- ventIntercept Set to: ${resultMap.ventIntercept}"
+	
 	resultMap.ventOpening = 50
 	resultMap.MaxVo = heatMaxVo
 	resultMap.MinVo = heatMinVo
@@ -258,13 +300,17 @@ def SetErrorVentParams(){
 
 def setVents(newVo){
 	debuglog "Opening Vent to ${newVo}"
+	if(!PauseZone){
 		vents.each{vent ->
 			debuglog "${vent} : ${state.VentOpeningMap[vent.displayName]}"
 			if (((state.VentOpeningMap[vent.displayName].toInteger()-newVo.toInteger())>5) || ((state.VentOpeningMap[vent.displayName].toInteger()-newVo.toInteger())<-5)){
-			debuglog "Vent was far enough away to move"
-			vent.setLevel(newVo)
-			runIn(60*1, ventcheck)
+				debuglog "Vent was far enough away to move"
+				vent.setLevel(newVo)
+				runIn(60*1, ventcheck)
+			}
 		}
+	} else{
+		debuglog "Zone Paused, not moving the Vents"
 	}
 }
 
@@ -369,6 +415,6 @@ def updateCheck(){
 }
 
 def setVersion(){
-                state.version = "1.0.4" // Version number of this app
+                state.version = "1.0.5" // Version number of this app
                 state.InternalName = "KeenectLiteZone"   // this is the name used in the JSON file for this app
 				}
