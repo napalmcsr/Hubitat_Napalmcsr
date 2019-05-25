@@ -100,8 +100,17 @@ def initialize()
 
 def modeChangeHandler(evt)
 {
-	if(settings.modes.contains(location.mode))
+	def allModes = settings.modes
+	if(!allModes)
 	{
+		if(allModes.contains(location.mode))
+		{
+			debuglog "modeChangeHandler: Entered a disable mode, turning off the Fan"
+			TurnOffFanSwitch()
+		}
+	} 
+	else
+	{	
 		debuglog "modeChangeHandler: Entered a disable mode, turning off the Fan"
 		TurnOffFanSwitch()
 	}
@@ -110,6 +119,8 @@ def modeChangeHandler(evt)
 def HumidityHandler(evt)
 {
 	infolog "HumidityHandler:running humidity check"
+	def allModes = settings.modes
+	def modeStop = false
 	debuglog "HumidityHandler: state.OverThreshold = ${state.OverThreshold}"
 	debuglog "HumidityHandler: state.AutomaticallyTurnedOn = ${state.AutomaticallyTurnedOn}"
 	debuglog "HumidityHandler: state.TurnOffLaterStarted = ${state.TurnOffLaterStarted}"               
@@ -158,7 +169,14 @@ def HumidityHandler(evt)
 	debuglog "HumidityHandler: state.HumidityChangeRate = ${state.HumidityChangeRate.round(2)}"
 	debuglog "HumidityHandler: state.targetHumidity = ${state.targetHumidity}"
 	//if the humidity is high (or rising fast) and the fan is off, kick on the fan
-    if (((state.HumidityChangeRate>HumidityIncreaseRate)||state.OverThreshold) && (FanSwitch.currentValue("switch") == "off")&&!settings.modes.contains(location.mode))
+	if(allModes)
+	{
+		if(allModes.contains(location.mode))
+		{
+			modeStop = true
+		}
+	}
+    if (((state.HumidityChangeRate>HumidityIncreaseRate)||state.OverThreshold) && (FanSwitch.currentValue("switch") == "off")&&!modeStop)
     {
 		state.AutomaticallyTurnedOn = true
 		state.TurnOffLaterStarted = false
