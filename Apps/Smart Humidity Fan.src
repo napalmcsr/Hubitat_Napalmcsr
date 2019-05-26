@@ -101,7 +101,7 @@ def initialize()
 def modeChangeHandler(evt)
 {
 	def allModes = settings.modes
-	if(!allModes)
+	if(allModes)
 	{
 		if(allModes.contains(location.mode))
 		{
