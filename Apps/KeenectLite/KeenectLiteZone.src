@@ -1,6 +1,6 @@
 /**
  *  V1.0.0 Init try
- *	V1.0.1 Added Heat and Cool vent opening limits
+ *  V1.0.1 Added Heat and Cool vent opening limits
  *  V1.0.2 Added Multiple Vent control
  *  V1.0.4 Fixed vent not setting issue with recursive call 
  *  V1.0.5 Added a pause control and added vent control for slow/normal and fast slope and intercepts
@@ -303,7 +303,7 @@ def setVents(newVo){
 	if(!PauseZone){
 		vents.each{vent ->
 			debuglog "${vent} : ${state.VentOpeningMap[vent.displayName]}"
-			if (((state.VentOpeningMap[vent.displayName].toInteger()-newVo.toInteger())>5) || ((state.VentOpeningMap[vent.displayName].toInteger()-newVo.toInteger())<-5)){
+			if (((state.VentOpeningMap[vent.displayName].toInteger()-newVo.toInteger())>7) || ((state.VentOpeningMap[vent.displayName].toInteger()-newVo.toInteger())<-7)){
 				debuglog "Vent was far enough away to move"
 				vent.setLevel(newVo)
 				runIn(60*1, ventcheck)
