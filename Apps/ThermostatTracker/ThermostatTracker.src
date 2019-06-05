@@ -1,9 +1,11 @@
 /**
- *  Smart Pool Pump
+ *  Thermostat Tracker
+ *
+ *  V1.0.0  Initial try
  *
  *  Turns on a Pump when you say and runs different times during the season
  *  1 hour for every 10 dgrees
- *  Copyright 2018 Craig Romei
+ *  Copyright 2019 Craig Romei
  *  GNU General Public License v2 (https://www.gnu.org/licenses/gpl-2.0.txt)
  *
  */
@@ -199,7 +201,7 @@ def convtime(seconds)
 		seconds = 0
 	}
 	def hour =  String.format('%02d',seconds.intdiv(60*60))
-	def minutes = String.format('%02d',seconds%(60*60).intdiv(60))
+	def minutes = String.format('%02d',(seconds%(60*60)).intdiv(60))
 	return hour+":"+minutes
 }
 	
