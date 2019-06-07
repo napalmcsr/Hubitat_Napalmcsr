@@ -2,6 +2,7 @@
  *  Thermostat Tracker
  *
  *  V1.0.0  Initial try
+ *  V1.0.1  Fixed a rounding error
  *
  *  Turns on a Pump when you say and runs different times during the season
  *  1 hour for every 10 dgrees
@@ -201,9 +202,11 @@ def convtime(seconds)
 	{
 		seconds = 0
 	}
-	def hour =  String.format('%02d',seconds.intdiv(60*60))
-	def minutes = String.format('%02d',(seconds%(60*60)).intdiv(60))
-	return hour+":"+minutes
+	def hour =  seconds/(60*60)
+	hour = Math.round(hour)
+	def minutes = (seconds%(60*60))/60
+	minutes = Math.round(minutes)
+	return String.format('%02d',hour)+":"+String.format('%02d',minutes)
 }
 	
 	
