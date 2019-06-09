@@ -1,9 +1,10 @@
 /**
  *  V1.0.0 Init try
- *  V1.0.1 Added Heat and Cool vent opening limits
+ *	V1.0.1 Added Heat and Cool vent opening limits
  *  V1.0.2 Added Multiple Vent control
  *  V1.0.4 Fixed vent not setting issue with recursive call 
  *  V1.0.5 Added a pause control and added vent control for slow/normal and fast slope and intercepts
+ *  V1.0.6 Added local virtual thermostat control
  *
  *  Copyright 2019 Craig Romei
  *
@@ -48,6 +49,7 @@ def pageConfig()
 	section("Devices")
 	{
 		input "tStat", "capability.thermostat", title: "Zone Virtual Thermostat for setting zone setpoints", required: true
+		input name : "UseTstatMode", title : "Use Thermostat Mode to control vents", multiple : false ,required : true, type	: "bool" ,submitOnChange : true, defaultValue : false
 		input "vents", "capability.switchLevel", title: "Zone Vent",multiple: true, required: true
 		input "tempSensor", "capability.temperatureMeasurement", title: "Zone Temperature Sensor", multiple: false, required: true
 	}
@@ -97,6 +99,12 @@ def initialize(){
 	debuglog "Subscribe to Tstat"
 	subscribe(tStat, "heatingSetpoint", setTstatHSP)
 	subscribe(tStat, "coolingSetpoint", setTstatCSP)
+	if(UseTstatMode)
+	{
+		subscribe(tStat, "thermostatMode", setTstatMode)
+		debuglog "Getting local virtual Thermostat thermostatMode" 
+		state.thermostatMode = tStat.currentValue("thermostatMode").toUpperCase()
+	}
 	debuglog "Getting Thermostat Heating Setpoint" 
 	state.zoneHeatSetpoint = tStat.currentValue("heatingSetpoint")
 	debuglog "Getting Thermostat Cooling Setpoint" 
@@ -114,6 +122,13 @@ def initialize(){
     zoneEvaluate()
 	state.remove("state.VentOpening")
 	infolog "Done init"
+}
+
+def setTstatMode(evt)
+{
+	infolog "Running setTstatMode"
+	state.thermostatMode = evt.value.toUpperCase()
+	zoneEvaluate()
 }
 
 def MainTstatStateChange(mainTStatState) {
@@ -159,8 +174,7 @@ def ventHandler(evt) {
 def zoneEvaluate(){
 	infolog "Running zoneEvaluate"
 	Map VentParams = [:]
-   
-    debuglog "evaluateVentsOpening: ventmode: ${state.mainTstatState}"
+    debuglog "zoneEvaluate: ventmode: ${state.mainTstatState}"
 	if (state.mainTstatState!="IDLE"){
 		switch (state.mainTstatState){
 			case "HEATING" :
@@ -177,15 +191,31 @@ def zoneEvaluate(){
 				break
 				   
 		} 
-		infolog "evaluateVentsOpening:Calculate Vent Opening"
+		infolog "zoneEvaluate:Check Tstat Mode"
+		CheckTstatMode(VentParams)
+		infolog "zoneEvaluate:Calculate Vent Opening"
 		CalculteVent(VentParams)
-		infolog "evaluateVentsOpening:Set The Vent"
+		infolog "zoneEvaluate:Set The Vent"
 		state.zoneVoLocal =  VentParams.ventOpening
 		setVents(VentParams.ventOpening)
 	}
-	infolog "evaluateVentsOpening: --EXIT"
+	infolog "zoneEvaluate: --EXIT"
 }
 
+
+def CheckTstatMode(VentParams)
+{
+	if(UseTstatMode)
+	{	
+		if (!(state.mainTstatState.contains(state.thermostatMode)||(state.thermostatMode=="AUTO")))
+		{
+			debuglog "CheckTstatMode: Not in the tstat mode, state.mainTstatState= ${state.mainTstatState} - state.thermostatMode= ${state.thermostatMode}"
+			VentParams.tempDelta = 0.1
+			VentParams.ventSlope = 0
+			VentParams.ventIntercept = VentParams.MinVo
+		}
+	}
+}
 
 def CalculteVent(Map VentParams){
 	
@@ -415,6 +445,6 @@ def updateCheck(){
 }
 
 def setVersion(){
-                state.version = "1.0.5" // Version number of this app
+                state.version = "1.0.6" // Version number of this app
                 state.InternalName = "KeenectLiteZone"   // this is the name used in the JSON file for this app
 				}
