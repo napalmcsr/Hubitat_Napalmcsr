@@ -1,6 +1,7 @@
 /**
  *  V1.0.0 Init try
  *  V1.0.1 Removed mode restriction
+ *  V1.0.2 Added Fan Mode support for Fan Only
  *
  *  Copyright 2019 Craig Romei
  *
@@ -114,7 +115,7 @@ def checkFanMode()
 {
 	if(UseTstatMode)
 	{
-		if((state.mainState="IDLE")&&((state.thermostatFanMode="ON"||(state.thermostatFanMode="CIRCULATE")))
+		if((state.mainState=="IDLE")&&((state.thermostatFanMode=="ON")||(state.thermostatFanMode=="CIRCULATE")))
 		{
 			debuglog "checkFanMode:  Changing main state to Fan Only"
 			state.mainState="FAN ONLY"
@@ -126,13 +127,6 @@ def OperatingStateHandler(evt) {
 	debuglog "OperatingStateHandler event : ${evt}"
 	def newTstatState = evt.value.toUpperCase()
 	if (newTstatState != state.mainState) {
-		if(UseTstatMode)
-		{
-			if((newTstatState="IDLE")&&((state.thermostatFanMode="ON"||(state.thermostatFanMode="CIRCULATE")))
-			{
-				newTstatState="FAN ONLY"
-			}
-		}
 		state.mainState = newTstatState
 		checkFanMode()
 		SendTstatStateChange()
