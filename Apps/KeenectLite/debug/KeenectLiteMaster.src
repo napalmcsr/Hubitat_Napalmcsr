@@ -115,6 +115,8 @@ def checkFanMode()
 {
 	if(UseTstatMode)
 	{
+    		debuglog "checkFanMode:  thermostatFanMode : ${state.thermostatFanMode}"
+    		debuglog "checkFanMode:  mainState : ${state.mainState}"
 		if((state.mainState=="IDLE")&&((state.thermostatFanMode=="ON")||(state.thermostatFanMode=="CIRCULATE")))
 		{
 			debuglog "checkFanMode:  Changing main state to Fan Only"
