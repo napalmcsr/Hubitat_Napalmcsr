@@ -203,8 +203,8 @@ def convtime(seconds)
 	{
 		seconds = 0
 	}
-	def hour =  seconds/(60*60)
-	hour = Math.round(hour)
+	def hour =  seconds.indiv(60*60)
+//	hour = Math.round(hour)
 	def minutes = (seconds%(60*60))/60
 	minutes = Math.round(minutes)
 	return String.format('%02d',hour)+":"+String.format('%02d',minutes)
