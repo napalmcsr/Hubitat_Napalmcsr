@@ -5,6 +5,7 @@
  *  V1.0.4 Fixed vent not setting issue with recursive call 
  *  V1.0.5 Added a pause control and added vent control for slow/normal and fast slope and intercepts
  *  V1.0.6 Added local virtual thermostat control
+ *  V1.0.7 Added treat idle as Fan Only
  *
  *  Copyright 2019 Craig Romei
  *
@@ -61,6 +62,7 @@ def pageConfig()
 		input name: "coldMinVo", title : "Cooling minimum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
 		input name: "coldMaxVo", title : "Cooling maximum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "100"
 		input name: "FanVo", title : "Fan mode opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
+		input name : "TreatIdleAsFan", title : "Treat Idle as Fan Only?", multiple : false ,required : true, type	: "bool" ,submitOnChange : true, defaultValue : false
 	}
 	section("Logging")
 	{input(
@@ -175,7 +177,7 @@ def zoneEvaluate(){
 	infolog "Running zoneEvaluate"
 	Map VentParams = [:]
     debuglog "zoneEvaluate: ventmode: ${state.mainTstatState}"
-	if (state.mainTstatState!="IDLE"){
+	if ((state.mainTstatState!="IDLE")||TreatIdleAsFan){
 		switch (state.mainTstatState){
 			case "HEATING" :
 				VentParams = SetHeatVentParams()
@@ -184,6 +186,9 @@ def zoneEvaluate(){
 				VentParams = SetCoolVentParams()
 				break
 			case "FAN ONLY" :
+				VentParams = SetFanVentParams()
+				break
+			case "IDLE" :
 				VentParams = SetFanVentParams()
 				break
 			default :
@@ -445,6 +450,6 @@ def updateCheck(){
 }
 
 def setVersion(){
-                state.version = "1.0.6" // Version number of this app
+                state.version = "1.0.7" // Version number of this app
                 state.InternalName = "KeenectLiteZone"   // this is the name used in the JSON file for this app
 				}
