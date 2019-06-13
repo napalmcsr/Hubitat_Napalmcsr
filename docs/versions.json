@@ -6,13 +6,13 @@
 		"Application":{
 			"DeadManChild":"1.0.2",
 			"DeadManParent":"1.0.0",
-			"VirtThermTempChild":"1.0.0",
+			"VirtThermTempChild":"1.0.1",
 			"VirtThermTempParent":"1.0.0",
 			"SmartHumidityFan":"2.0.2",
 			"KeenectMaster":"1.4.0",
 			"KeenectZone":"1.4.0",
 			"KeenectLiteMaster":"1.0.1",
-			"KeenectLiteZone":"1.0.6",
+			"KeenectLiteZone":"1.0.7",
 			"TstatTracker":"1.0.2"
 		},
 		"UpdateInfo":{
@@ -22,7 +22,8 @@
 				"KeenectZone":"<b>Update Information: </b> Updated: 10/11/2018 - initial Versioning",
 				"KeenectLiteMaster":"<b>Update Information: </b> Updated: 4/12/2019 - removed mode selection",
 				"TstatTracker":"<b>Update Information: </b> Updated: 6/09/2019 - fixed hour rounding error",
-				"KeenectLiteZone":"<b>Update Information: </b> Updated: 6/09/2019 - added local Thermostat mode control"
+				"VirtThermTempChild":"<b>Update Information: </b> Updated: 6/12/2019 - fixed initial update on install",
+				"KeenectLiteZone":"<b>Update Information: </b> Updated: 6/12/2019 - Added treat idle as Fan Only"
 			}
 		}
 	}
