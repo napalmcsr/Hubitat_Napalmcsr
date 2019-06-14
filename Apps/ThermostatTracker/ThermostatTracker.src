@@ -4,6 +4,7 @@
  *  V1.0.0  Initial try
  *  V1.0.1  Fixed a rounding error
  *  V1.0.2  Fixed the hour rounding error
+ *  V1.0.3  Fixed indiv typo
  *
  *  Turns on a Pump when you say and runs different times during the season
  *  1 hour for every 10 dgrees
@@ -203,7 +204,7 @@ def convtime(seconds)
 	{
 		seconds = 0
 	}
-	def hour =  seconds.indiv(60*60)
+	def hour =  seconds.intdiv(60*60)
 //	hour = Math.round(hour)
 	def minutes = (seconds%(60*60))/60
 	minutes = Math.round(minutes)
@@ -300,6 +301,6 @@ def updateCheck(){
 }
 
 def setVersion(){
-                state.version = "1.0.2" // Version number of this app
+                state.version = "1.0.3" // Version number of this app
                 state.InternalName = "TstatTracker"   // this is the name used in the JSON file for this app
 				}
