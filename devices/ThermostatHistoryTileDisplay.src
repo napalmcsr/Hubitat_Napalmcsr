@@ -45,14 +45,14 @@ def updated() {
 def clearData(){
     infolog "clearData - Start"
 	state.TodayData = " "
-	sendEvent(name: "SetToday", value: state.TodayData, isStateChange: true)
+	sendEvent(name: "Today", value: state.TodayData, isStateChange: true)
     infolog "clearData - End"
 	
 }
 
 def initialState(){
     infolog "initialState - Start"
-	sendEvent(name: "CustomDisplay", value: "Awaiting Data")	
+	sendEvent(name: "Today", value: "Awaiting Data")	
     infolog "initialState - End"  
 }
 
@@ -62,15 +62,15 @@ def SetToday(TodayData){
 	state.CharNumber = state.tileIn.length()
 	if(state.tileIn.length() > 1024){
 		debuglog("Too many characters!")
-		sendEvent(name: "SetToday", value: "Too many characters!", isStateChange: true)
+		sendEvent(name: "Today", value: "Too many characters!", isStateChange: true)
 	}
-	debuglog( "Attribute Content: $state.TodayData")
+	debuglog( "Attribute Content: ${state.TodayData}")
     infolog "SetToday - End"
 }
 			
 def refresh(){
     infolog "SetToday - Start"
-	sendEvent(name: "SetToday", value: state.TodayData, isStateChange: true)
+	sendEvent(name: "Today", value: state.TodayData, isStateChange: true)
 }
 
 
@@ -177,5 +177,5 @@ def updateCheck(){
 }
 
 def setVersion(){
-                state.version = "1.0.1" // Version number of this app
+                state.version = "1.0.0" // Version number of this app
                 state.InternalName = "ThermostatHistoryTileDisplay"   // this is the name used in the JSON file for this app
