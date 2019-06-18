@@ -16,6 +16,9 @@
 			"TstatTrackerTile":"1.0.0",
 			"TstatTracker":"2.0.0"
 		},
+		"Driver":{
+			"TstatTrackerTile":"1.0.1"
+		},
 		"UpdateInfo":{
 			"Application":{
 				"SmartHumidityFan":"<b>Update Information: </b> Updated: 5/25/2019 - Updated to add mode control",
@@ -25,6 +28,9 @@
 				"TstatTracker":"<b>Update Information: </b> Updated: 6/09/2019 - fixed intdiv typo",
 				"VirtThermTempChild":"<b>Update Information: </b> Updated: 6/18/2019 - Added Dashboard Support",
 				"KeenectLiteZone":"<b>Update Information: </b> Updated: 6/12/2019 - Added treat idle as Fan Only"
+			}
+			"Driver":{
+				"TstatTrackerTile":"Updated using better version Code"
 			}
 		}
 	}
