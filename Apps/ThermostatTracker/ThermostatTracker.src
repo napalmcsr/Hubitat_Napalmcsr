@@ -5,9 +5,9 @@
  *  V1.0.1  Fixed a rounding error
  *  V1.0.2  Fixed the hour rounding error
  *  V1.0.3  Fixed indiv typo
+ *  V2.0.0  Dashboard Support
  *
- *  Turns on a Pump when you say and runs different times during the season
- *  1 hour for every 10 dgrees
+ *  Tracks your Thermostat usage
  *  Copyright 2019 Craig Romei
  *  App update code by Cobra Apps
  *  GNU General Public License v2 (https://www.gnu.org/licenses/gpl-2.0.txt)
@@ -40,6 +40,7 @@ def pageConfig()
 		section("Report")
 		{
 			href "pageStatus", title: "Thermostat Usage", description: "Tap to see Thermostat usage"
+			input "DashboardTileUpdate", "capability.sensor", title: "Display Tile:", required: false
 		}
 		section("Thermostat")
 		{
@@ -116,7 +117,11 @@ def initialize()
 			state.Last7Days[i] = [:]
 		}
 	}
-	
+	if(DashboardTileUpdate)
+    {
+        CreateVerticalDashboardNow()
+        CreateVerticalDashboardHistory()
+    }
     infolog "initialize- complete"
 }
 
@@ -124,6 +129,10 @@ def tstatStateHandler(evt){
     infolog "tstatStateHandler- evt name: ${evt.name}, value: ${evt.value}"
 	UpdateTimeRunning()
     state.mainTstatState = evt.value.toUpperCase()
+    if(DashboardTileUpdate)
+    {
+        CreateVerticalDashboardNow()
+    }
 	debuglog "tstatStateHandler- state.mainTstatState : ${state.mainTstatState}"
     infolog "tstatStateHandler- complete"
 }
@@ -173,6 +182,11 @@ def Timehandler()
 	}
 	state.Last7Days[0] = state.StatusMapToday.clone()
 	InitializeNewDay()
+    if(DashboardTileUpdate)
+    {
+        CreateVerticalDashboardNow()
+        CreateVerticalDashboardHistory()
+    }
     infolog "Timehandler - complete"
 }
 
@@ -211,8 +225,70 @@ def convtime(seconds)
 	return String.format('%02d',hour)+":"+String.format('%02d',minutes)
 }
 	
+def CreateVerticalDashboardNow()
+{
+    debuglog "CreateVerticalDashboardNow - Start"
+    def reportString ="Today<br>"+"idle:"+"\t\t\t"+convtime(state.StatusMapToday["idle"])+"<br>"
+        reportString +="cooling:"+"\t\t"+convtime(state.StatusMapToday["cooling"]) +"<br>"
+        reportString += "heating"+"\t\t"+convtime(state.StatusMapToday["heating"]) +"<br>"
+        reportString += "fan only"+"\t\t"+convtime(state.StatusMapToday["fan only"]) +"<br>"
+        reportString += "pend cool"+"\t"+convtime(state.StatusMapToday["pending cool"]) +"<br>"
+        reportString += "pend heat"+"\t"+convtime(state.StatusMapToday["pending heat"]) +"<br>"
+        reportString += "vent econ"+"\t"+convtime(state.StatusMapToday["vent economizer"]) +"<br>"
+    DashboardTileUpdate.SetToday(reportString)
+    debuglog "CreateVerticalDashboardNow - ${reportString}"
+}
 	
-	
+def CreateVerticalDashboardHistory()
+{
+    debuglog "CreateVerticalDashboardNow - Start"
+    def reportString = ""
+    for(int i = 0;i<=6;i++) 
+    {
+        if(i==0)
+        {
+            reportString = "Yesterday<br>"
+        }
+        else
+        {
+            reportString = (i+1)+" days ago<br>"
+        }
+        reportString +="idle:"+"\t\t\t"+convtime(state.Last7Days[i]["idle"])+"<br>"
+        reportString +="cooling:"+"\t\t"+convtime(state.Last7Days[i]["cooling"]) +"<br>"
+        reportString += "heating"+"\t\t"+convtime(state.Last7Days[i]["heating"]) +"<br>"
+        reportString += "fan only"+"\t\t"+convtime(state.Last7Days[i]["fan only"]) +"<br>"
+        reportString += "pend cool"+"\t"+convtime(state.Last7Days[i]["pending cool"]) +"<br>"
+        reportString += "pend heat"+"\t"+convtime(state.Last7Days[i]["pending heat"]) +"<br>"
+        reportString += "vent econ"+"\t"+convtime(state.Last7Days[i]["vent economizer"]) +"<br>"
+        switch (i){
+			case 0 :
+				DashboardTileUpdate.SetYesterday(reportString)
+				break
+			case 1 :
+				DashboardTileUpdate.SetTwoDaysAgo(reportString)
+				break
+			case 2 :
+				DashboardTileUpdate.SetThreeDaysAgo(reportString)
+				break
+			case 3 :
+				DashboardTileUpdate.SetFourDaysAgo(reportString)
+				break
+			case 4 :
+				DashboardTileUpdate.SetFiveDaysAgo(reportString)
+				break
+			case 5 :
+				DashboardTileUpdate.SetSixDaysAgo(reportString)
+				break
+			case 6 :
+				DashboardTileUpdate.SetSevenDaysAgo(reportString)
+				break
+			default :
+				debuglog "CreateVerticalDashboardNow - Not a valid day!"
+				break
+				   
+		} 
+    }
+}
 	
 	
 	
@@ -301,6 +377,6 @@ def updateCheck(){
 }
 
 def setVersion(){
-                state.version = "1.0.3" // Version number of this app
+                state.version = "2.0.0" // Version number of this app
                 state.InternalName = "TstatTracker"   // this is the name used in the JSON file for this app
 				}
