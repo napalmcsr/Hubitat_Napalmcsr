@@ -28,9 +28,9 @@
 				"TstatTracker":"<b>Update Information: </b> Updated: 6/09/2019 - fixed intdiv typo",
 				"VirtThermTempChild":"<b>Update Information: </b> Updated: 6/18/2019 - Added Dashboard Support",
 				"KeenectLiteZone":"<b>Update Information: </b> Updated: 6/12/2019 - Added treat idle as Fan Only"
-			}
+			},
 			"Driver":{
-				"TstatTrackerTile":"Updated using better version Code"
+				"TstatTrackerTile":"Updated using better version Code - test"
 			}
 		}
 	}
