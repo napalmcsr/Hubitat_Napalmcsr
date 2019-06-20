@@ -1,0 +1,195 @@
+/**
+ *  V1.0.0 Init try
+ *
+ *  Copyright 2019 Craig Romei
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License. You may obtain a copy of the License at:
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+ *  for the specific language governing permissions and limitations under the License.
+ *
+ */
+
+
+metadata {
+		definition (name: "KeenectLiteDisplay", 
+					namespace: "napalmcsr", 
+					author: "Craig Romei")
+			{
+				capability "Sensor"
+				command "clearData", ["string"]
+				command "SetKeenectData", ["string"]	
+				command "refresh"
+				attribute "KeenectData", "string"
+				attribute "DriverAuthor", "string"
+                attribute "DriverVersion", "string"
+                attribute "DriverStatus", "string"
+	            attribute "DriverUpdate", "string"
+		}
+	preferences()
+	{
+        input(
+		name : "logLevel"
+		,title : "IDE logging level" 
+		,multiple : false
+		,required : true
+		,type : "enum"
+		,options  : getLogLevels()
+		,submitOnChange : false
+		,defaultValue : "0"
+			)  
+		}
+}	
+			
+			
+			
+def initialize(){updated()}	
+def updated() {
+    infolog "Updated - Start"
+    version()
+	initialState()
+    infolog "Updated - End"
+	}			
+			
+def clearData(){
+    infolog "clearData - Start"
+    state.KeenectData = "Awaiting Data"
+	sendEvent(name: "KeenectData", value: state.KeenectData)
+    infolog "clearData - End"
+	
+}
+
+def initialState(){
+    infolog "initialState - Start"
+    state.KeenectData = "Awaiting Data"
+	sendEvent(name: "KeenectData", value: state.KeenectData)	
+    infolog "initialState - End"  
+}
+
+def SetKeenectData(KeenectData){
+    infolog "SetKeenectData - Start"
+    debuglog "SetKeenectData - KeenectData: ${KeenectData}"
+	state.KeenectData = KeenectData
+	if(state.KeenectData.length() > 1024){
+		debuglog("Too many characters!")
+		sendEvent(name: "KeenectData", value: "Too many characters!", isStateChange: true)
+	}
+	debuglog( "Attribute Content: ${state.KeenectData}")
+	sendEvent(name: "KeenectData", value: state.KeenectData, isStateChange: true)
+    infolog "SetKeenectData - End"
+}
+
+def refresh(){
+    infolog "refresh - Start"
+	sendEvent(name: "KeenectData", value: state.KeenectData, isStateChange: true)
+    infolog "refresh - End"
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def debuglog(statement)
+{   
+    def logL = 0
+    if (logLevel) logL = logLevel.toInteger()
+    if (logL == 0) {return}//bail
+    else if (logL >= 2)
+	{
+	  	log.debug(statement)
+	}
+}
+def infolog(statement)
+{       
+    def logL = 0
+    if (logLevel) logL = logLevel.toInteger()
+    if (logL == 0) {return}//bail
+    else if (logL >= 1)
+    {
+    	log.info(statement)
+    }
+}
+def getLogLevels(){
+    return [["0":"None"],["1":"Running"],["2":"NeedHelp"]]
+}
+
+
+
+def version(){
+    unschedule()
+    schedule("0 0 8 ? * FRI *", updateCheck)  // Cron schedule - How often to perform the update check - (This example is 8am every Friday)
+    updateCheck()
+}
+
+def updateCheck(){
+    setVersion()
+	def paramsUD = [uri: "http://someDomain.com/versions.json" ]  // This is the URI & path to your hosted JSON file
+       	try {
+        httpGet(paramsUD) { respUD ->
+ //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code - Uncommenting this line should show the JSON response from your webserver
+       		def copyrightRead = (respUD.data.copyright)
+       		state.Copyright = copyrightRead
+            def newVerRaw = (respUD.data.versions.Driver.(state.InternalName))
+            def newVer = (respUD.data.versions.Driver.(state.InternalName).replace(".", ""))
+       		def currentVer = state.Version.replace(".", "")
+      		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Driver.(state.InternalName))
+                state.author = (respUD.data.author)
+           
+		if(newVer == "NLS"){
+            state.Status = "<b>** This driver is no longer supported by $state.author  **</b>"       
+            log.warn "** This driver is no longer supported by $state.author **"      
+      		}           
+		else if(currentVer < newVer){
+        	state.Status = "<b>New Version Available (Version: $newVerRaw)</b>"
+        	log.warn "** There is a newer version of this driver available  (Version: $newVerRaw) **"
+        	log.warn "** $state.UpdateInfo **"
+       		} 
+		else{ 
+      		state.Status = "Current"
+      		log.info "You are using the current version of this driver"
+       		}
+      					}
+        	} 
+        catch (e) {
+        	log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
+    		}
+   		if(state.Status == "Current"){
+			state.UpdateInfo = "N/A"
+		    sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
+	 	    sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
+			}
+    	else{
+	    	sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
+	     	sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
+	    }   
+ 			sendEvent(name: "DriverAuthor", value: state.author, isStateChange: true)
+    		sendEvent(name: "DriverVersion", value: state.Version, isStateChange: true)
+    
+    
+    	//	
+}
+
+def setVersion(){
+		state.Version = "1.0.0"	 // Version number of this driver
+		state.InternalName = "KeenectDataTile"   // this is the name used in the JSON file for this driver
+}
