@@ -12,12 +12,13 @@
 			"KeenectMaster":"1.4.0",
 			"KeenectZone":"1.4.0",
 			"KeenectLiteMaster":"1.0.1",
-			"KeenectLiteZone":"1.0.7",
+			"KeenectLiteZone":"2.0.0",
 			"TstatTrackerTile":"1.0.0",
 			"TstatTracker":"2.0.0"
 		},
 		"Driver":{
-			"TstatTrackerTile":"1.0.1"
+			"TstatTrackerTile":"1.0.1",
+			"KeenectDataTile":"1.0.0"
 		},
 		"UpdateInfo":{
 			"Application":{
@@ -27,10 +28,11 @@
 				"KeenectLiteMaster":"<b>Update Information: </b> Updated: 4/12/2019 - removed mode selection",
 				"TstatTracker":"<b>Update Information: </b> Updated: 6/09/2019 - fixed intdiv typo",
 				"VirtThermTempChild":"<b>Update Information: </b> Updated: 6/18/2019 - Added Dashboard Support",
-				"KeenectLiteZone":"<b>Update Information: </b> Updated: 6/12/2019 - Added treat idle as Fan Only"
+				"KeenectLiteZone":"<b>Update Information: </b> Updated: 6/12/2019 - Added Digital Control and dashboard tile support"
 			},
 			"Driver":{
-				"TstatTrackerTile":"Updated using better version Code - test"
+				"TstatTrackerTile":"Updated using better version Code",
+				"KeenectDataTile":"Initial"
 			}
 		}
 	}
