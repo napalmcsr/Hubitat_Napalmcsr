@@ -6,6 +6,7 @@
  *  V1.0.5 Added a pause control and added vent control for slow/normal and fast slope and intercepts
  *  V1.0.6 Added local virtual thermostat control
  *  V1.0.7 Added treat idle as Fan Only
+ *  V2.0.0 Added Digital Control and dashboard tile support
  *
  *  Copyright 2019 Craig Romei
  *
@@ -43,7 +44,7 @@ def pageConfig()
     {
         display()
     }
-	section("Devices")
+	section("Pause")
 	{
 		input "PauseZone", "bool", title: "Pause KeenectLite from controlling this zone.", required: true, defaultValue: false, submitOnChange: true
 	}
@@ -53,10 +54,11 @@ def pageConfig()
 		input name : "UseTstatMode", title : "Use Thermostat Mode to control vents", multiple : false ,required : true, type	: "bool" ,submitOnChange : true, defaultValue : false
 		input "vents", "capability.switchLevel", title: "Zone Vent",multiple: true, required: true
 		input "tempSensor", "capability.temperatureMeasurement", title: "Zone Temperature Sensor", multiple: false, required: true
+		input "DashboardTileUpdate", "capability.sensor", title: "Display Tile(If wanted):", required: false
 	}
 	section("Settings")
 	{
-		input "VentControlType", "enum", title: "How reactive do you want the vents? Aggressive keeps them open wider closer to target, Slow starts closing them further away from target.", submitOnChange: true,required : true,defaultValue	: "Normal", options: ["Aggressive", "Normal", "Slow"]
+		input "VentControlType", "enum", title: "How reactive do you want the vents? Aggressive keeps them open wider closer to target, Slow starts closing them further away from target. Binary is full open or close, based on limits.", submitOnChange: true,required : true,defaultValue	: "Normal", options: ["Aggressive", "Normal", "Slow","Binary"]
 		input name: "heatMinVo", title : "Heating minimum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
 		input name: "heatMaxVo", title : "Heating maximum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "100"
 		input name: "coldMinVo", title : "Cooling minimum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
@@ -170,6 +172,7 @@ def ventHandler(evt) {
 	}
 	infolog "state.VentOpeningMap after =  ${state.VentOpeningMap}"
 	//state.VentOpeningMap[vent.displayName] =vent.currentValue("level")
+    sendDisplayTile()
 	debuglog "${evt.device} was set to ${evt.value}"
 }
 
@@ -204,6 +207,7 @@ def zoneEvaluate(){
 		state.zoneVoLocal =  VentParams.ventOpening
 		setVents(VentParams.ventOpening)
 	}
+    sendDisplayTile()
 	infolog "zoneEvaluate: --EXIT"
 }
 
@@ -259,6 +263,10 @@ def SetCoolVentParams(){
 				resultMap.ventSlope = (coldMaxVo.toInteger()-coldMinVo.toInteger())/2
 				resultMap.ventIntercept = coldMinVo.toInteger()
 				break
+			case "Binary" :
+				resultMap.ventSlope = 10000
+				resultMap.ventIntercept = coldMinVo.toInteger()
+				break
 			default :
 				resultMap.ventSlope = (coldMaxVo.toInteger()-heatMinVo.toInteger())
 				resultMap.ventIntercept = coldMinVo.toInteger()
@@ -290,6 +298,10 @@ def SetHeatVentParams(){
 				break
 			case "Slow" :
 				resultMap.ventSlope = (heatMaxVo.toInteger()-heatMinVo.toInteger())/2
+				resultMap.ventIntercept = heatMinVo.toInteger()
+				break
+			case "Binary" :
+				resultMap.ventSlope = 10000
 				resultMap.ventIntercept = heatMinVo.toInteger()
 				break
 			default :
@@ -349,8 +361,6 @@ def setVents(newVo){
 	}
 }
 
-
-
 def ventcheck(){
 	//if (state.enabled == true){
     debuglog "ventcheck:enter- "
@@ -359,6 +369,22 @@ def ventcheck(){
 	//}
 }
 
+def sendDisplayTile()
+{
+    if(DashboardTileUpdate)
+    {
+        def reportString = app.label +"<br>"
+        reportString += "Mode: "+state.mainTstatState+"<br>"
+        reportString += "Setpoint: "+state.activeSetPoint+"<br>"
+        reportString += "Temp: "+state.currentTemperature+"<br>"
+        
+	    vents.each{ vent ->
+            reportString += vent.displayName+": "+vent.currentValue("level")+"<br>"
+	    }
+        debuglog "zoneEvaluate: ${reportString}"
+        DashboardTileUpdate.SetKeenectData(reportString)
+    }
+}
 
 
 
@@ -450,6 +476,6 @@ def updateCheck(){
 }
 
 def setVersion(){
-                state.version = "1.0.7" // Version number of this app
+                state.version = "2.0.0" // Version number of this app
                 state.InternalName = "KeenectLiteZone"   // this is the name used in the JSON file for this app
 				}
