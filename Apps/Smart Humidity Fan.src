@@ -72,6 +72,8 @@ def pageConfig()
 				,defaultValue : "10"
 				)  
 		}
+        
+		 section() {label title: "Enter a name for this automation", required: false}
 	}
 }
 
@@ -365,7 +367,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-	state.version = "2.0.2" // Version number of this app
+	state.version = "2.0.3" // Version number of this app
 	state.InternalName = "SmartHumidityFan"   // this is the name used in the JSON file for this app
 }
 
