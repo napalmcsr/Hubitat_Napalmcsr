@@ -8,7 +8,7 @@
 			"DeadManParent":"1.0.0",
 			"VirtThermTempChild":"1.0.1",
 			"VirtThermTempParent":"1.0.0",
-			"SmartHumidityFan":"2.0.2",
+			"SmartHumidityFan":"2.0.3",
 			"KeenectMaster":"1.4.0",
 			"KeenectZone":"1.4.0",
 			"KeenectLiteMaster":"1.0.1",
@@ -22,7 +22,7 @@
 		},
 		"UpdateInfo":{
 			"Application":{
-				"SmartHumidityFan":"<b>Update Information: </b> Updated: 5/25/2019 - Updated to add mode control",
+				"SmartHumidityFan":"<b>Update Information: </b> Updated: 5/25/2019 - Fixed missing Title",
 				"KeenectMaster":"<b>Update Information: </b> Updated: 10/11/2018 - initial Versioning",
 				"KeenectZone":"<b>Update Information: </b> Updated: 10/11/2018 - initial Versioning",
 				"KeenectLiteMaster":"<b>Update Information: </b> Updated: 4/12/2019 - removed mode selection",
