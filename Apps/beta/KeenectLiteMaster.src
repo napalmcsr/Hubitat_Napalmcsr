@@ -80,6 +80,9 @@ def initialize() {
     childApps.each {child ->
     debuglog "Child app: ${child.label}"
     }    
+    state.childTemps= [:]
+    state.childSetpoint= [:]
+    state.childVentOpening= [:]
 }
 
 def getMainTstatState(){
@@ -117,6 +120,12 @@ def ChildGetMainTstatState() {
 
 def SetChildStats(ZoneStat){
     debuglog ZoneStat
+    state.childTemps[ZoneStat.title]= ZoneStat.currentTemperature
+    state.childSetpoint[ZoneStat.title]= ZoneStat.setpoint
+    state.childVentOpening[ZoneStat.title]= ZoneStat.vent
+    debuglog state.childTemps
+    debuglog state.childSetpoint
+    debuglog state.childVentOpening
 }
 
 
@@ -202,6 +211,6 @@ def updateCheck(){
 }
 
 def setVersion(){
-                state.version = "1.0.2" // Version number of this app
+                state.version = "1.0.1" // Version number of this app
                 state.InternalName = "KeenectLiteMaster"   // this is the name used in the JSON file for this app
 				}
