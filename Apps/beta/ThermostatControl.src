@@ -35,9 +35,9 @@ def pageConfig()
 		{
 			input name : "tStat", type : "capability.thermostat", title: "Virtual thermostat control", required: true
 			input "TemperatureSensor", "capability.temperatureMeasurement", title: "Temperature Sensor:", required: true
-			input "enableSwitch", "capability.switch", title: "Switch that enables Thermostat Control (always on if not specified)", equired: false
-			input "HeatSwitch", "capability.switch", title: "Switch that runs heating/cooling device", equired: false
-			input "CoolSwitch", "capability.switch", title: "Switch that runs heating/cooling device", equired: false
+			input "enableSwitch", "capability.switch", title: "Switch that enables Thermostat Control (always on if not specified)", required: false
+			input "HeatSwitch", "capability.switch", title: "Switch that runs heating/cooling device", required: false
+			input "CoolSwitch", "capability.switch", title: "Switch that runs heating/cooling device", required: false
 		}	
 		section("Timer Settings")
 		{
@@ -80,8 +80,10 @@ def initialize()
 	Unschedule
 	unsubscribe
 	subscribe(TemperatureSensor, "temperature", TemperatureHandler)
-	subscribe(enableSwitch, "temperature", enableHandler)
 	subscribe(tStat, "OperatingState", TStatStateHandler)
+	if (enableSwitch){
+		subscribe(enableSwitch, "temperature", enableHandler)
+	}
 	debuglog "Getting current Temperature and updating Thermostat" 
 	if (DeadmanTime){
 		state.deadman = false
