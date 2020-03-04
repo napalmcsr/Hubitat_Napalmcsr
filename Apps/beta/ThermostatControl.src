@@ -2,7 +2,6 @@
 *  Virtual Thermostat Temperature Update Child
 *
 *  V1.0.0 Initial Release
-*  V1.0.1 Fixed inital temperature on install
 *
 *  Updates the temperature of a virtual thermostat using a temp sensor
 *
@@ -36,14 +35,14 @@ def pageConfig()
 		{
 			input name : "tStat", type : "capability.thermostat", title: "Virtual thermostat control", required: true
 			input "TemperatureSensor", "capability.temperatureMeasurement", title: "Temperature Sensor:", required: true
-			input "enableSwitch", "capability.switch", title: "Switch that enables Thermostat Control", equired: false
+			input "enableSwitch", "capability.switch", title: "Switch that enables Thermostat Control (always on if not specified)", equired: false
 			input "HeatSwitch", "capability.switch", title: "Switch that runs heating/cooling device", equired: false
 			input "CoolSwitch", "capability.switch", title: "Switch that runs heating/cooling device", equired: false
 		}	
 		section("Timer Settings")
 		{
-			refreshInt
-			DeadmanTime
+			input "refreshInt", "number", title: "Number of Minutes between temp sensor refreshes:", required: true, defaultValue:  5
+			input "DeadmanTime", "number", title: "Maximun number of minutes between temp sensor updates until heat and ccol are disabled:", required: false, defaultValue:  11
 		}
 
 		section("Logging")
@@ -84,12 +83,24 @@ def initialize()
 	subscribe(enableSwitch, "temperature", enableHandler)
 	subscribe(tStat, "OperatingState", TStatStateHandler)
 	debuglog "Getting current Temperature and updating Thermostat" 
-	state.deadman = false
-	if enableSwitch.value = "on" {
+	if (DeadmanTime){
+		state.deadman = false
+	}
+	else{
+		state.deadman = false
+	}
+	
+	if (!enableSwitch) {
 		state.ThermostatState = tstat.operatingstate
 		TempSensorPolling(true)
 		sleep(15)
-		CheckThermostatControl
+		CheckDiableCheckThermostatControl
+	}
+	else if (enableSwitch.value = "on") {
+		state.ThermostatState = tstat.operatingstate
+		TempSensorPolling(true)
+		sleep(15)
+		CheckDiableCheckThermostatControl
 	}
     version()
 }
@@ -107,7 +118,7 @@ def enableHandler(evt){
 	if evt.value=="on" {
 		state.enable = true  
 		TempSensorPolling(true)
-		CheckThermostatControl
+		CheckDiableCheckThermostatControl
 	}		
 	else {
 		state.enable = false
@@ -119,25 +130,35 @@ def enableHandler(evt){
 
 def DeadmanHandler(enableDeadman)
 {
-	if (enableDeadman){
-		state.deadman = true
-		if (state.enable)
-		{
-			CheckThermostatControl
+	if (DeadmanTime){
+		if (enableDeadman){
+			state.deadman = true
+			if (state.enable)
+			{
+				CheckDiableCheckThermostatControl
+			}
+			runIn(60 * DeadmanTime, DeadmanHandler(false))
 		}
-		runIn(60 * DeadmanTime, DeadmanHandler(false))
-	}
-	else{
-		state.deadman = false
-		turnOffAll
+		else{
+			state.deadman = false
+			turnOffAll
+		}
 	}
 }
 
 def TStatStateHandler(evt)
 {
 	state.ThermostatState = evt.value
-	if (!state.deadman){
+	CheckDiableCheckThermostatControl
+}
+
+def CheckDiableCheckThermostatControl
+{
+	if (state.deadman&&state.enable){
 		CheckThermostatControl
+	}
+	else{
+		turnOffAll
 	}
 }
 
@@ -146,12 +167,20 @@ def CheckThermostatControl()
 	switch(state.ThermostatState)
 	{
 		case"heating":
-			HeatSwitch.on()
-			CoolSwitch.off()
+			if (HeatSwitch){
+				HeatSwitch.on()
+			}
+			if (CoolSwitch){
+				CoolSwitch.off()
+			}
 		break
 		case "cooling":
-			HeatSwitch.off()
-			CoolSwitch.on()
+			if (HeatSwitch){
+				HeatSwitch.off()
+			}
+			if (CoolSwitch){
+				CoolSwitch.on()
+			}
 		break
 		case default:
 			turnOffAll
@@ -161,8 +190,12 @@ def CheckThermostatControl()
 
 def turnOffAll()
 {
-	HeatSwitch.off()
-	CoolSwitch.off()
+	if (HeatSwitch){
+		HeatSwitch.off()
+	}
+	if (CoolSwitch){
+		CoolSwitch.off()
+	}
 }
 
 def TempSensorPolling(enable)
