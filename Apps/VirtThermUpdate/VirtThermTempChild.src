@@ -2,7 +2,6 @@
 *  Virtual Thermostat Temperature Update Child
 *
 *  V1.0.0 Initial Release
-*  V1.0.1 Fixed inital temperature on install
 *
 *  Updates the temperature of a virtual thermostat using a temp sensor
 *
@@ -12,12 +11,12 @@
 */
 
 definition(
-    name: "Virtual Thermostat Temperature Update Child",
+    name: "Virtual Thermostat Control Child",
     namespace: "napalmcsr",
     author: "Craig Romei",
     description: "Update a Virtual Thermostats temperature using a temperature sensor",
     category: "Convenience",
-    parent: "napalmcsr:Virtual Thermostat Temperature Update Parent",
+    parent: "napalmcsr:Virtual Thermostat Control Parent",
     iconUrl: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg",
     iconX2Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg",
     iconX3Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg"
@@ -32,18 +31,18 @@ def pageConfig()
 		{
 			display()
 		}
-		section("Sensor and Thermostat")
+		section("Sensor, Thermostat, and Switches")
 		{
-
+			input name : "tStat", type : "capability.thermostat", title: "Virtual thermostat control", required: true
 			input "TemperatureSensor", "capability.temperatureMeasurement", title: "Temperature Sensor:", required: true
-			input(
-				name			: "tStat"
-				,title			: "Virtual Thermostat"
-				,multiple		: false
-				,required		: true
-				,type			: "capability.thermostat"
-				,submitOnChange	: false
-			)
+			input "enableSwitch", "capability.switch", title: "Switch that enables Thermostat Control (always on if not specified)", required: false
+			input "HeatSwitch", "capability.switch", title: "Switch that runs heating/cooling device", required: false
+			input "CoolSwitch", "capability.switch", title: "Switch that runs heating/cooling device", required: false
+		}	
+		section("Timer Settings")
+		{
+			input "refreshInt", "number", title: "Number of Minutes between temp sensor refreshes:", required: true, defaultValue:  5
+			input "DeadmanTime", "number", title: "Maximun number of minutes between temp sensor updates until heat and ccol are disabled:", required: false, defaultValue:  11
 		}
 
 		section("Logging")
@@ -71,32 +70,156 @@ def installed()
 def updated()
 {
     unsubscribe()
+	unschedule()
     initialize()
 }
 
 def initialize()
 {
     infolog "Initializing"
+	Unschedule
+	unsubscribe
 	subscribe(TemperatureSensor, "temperature", TemperatureHandler)
-	debuglog "Getting current Temperature and updating Thermostat" 
+	subscribe(tStat, "OperatingState", TStatStateHandler)
 	state.lastTemp = TemperatureSensor.currentValue("temperature").toFloat()
 	tStat.setTemperature(state.lastTemp)
+	
+	if (enableSwitch){
+		subscribe(enableSwitch, "temperature", enableHandler)
+	}
+	debuglog "Getting current Temperature and updating Thermostat" 
+	if (DeadmanTime){
+		state.deadman = false
+	}
+	else{
+		state.deadman = true
+	}
+	
+	state.ThermostatState = tstat.operatingstate
+	tstat.temperature = TemperatureSensor.
+	if (!enableSwitch) {
+		TempSensorPolling(true)
+		state.enable = true 
+		sleep(15)
+		CheckDiableCheckThermostatControl
+	}
+	else if (enableSwitch.value = "on") {
+		state.enable = true
+		TempSensorPolling(true)
+		sleep(15)
+		CheckDiableCheckThermostatControl
+	}
+	else{
+		state.enable = false
+	}
     version()
 }
 
 def TemperatureHandler(evt){
     debuglog "TemperatureHandler- evt name: ${evt.name}, value: ${evt.value}" 
     state.lastTemp = evt.value.toFloat()   
+	DeadmanHandler(true)
 	tStat.setTemperature(state.lastTemp)
 	infolog "Temperature Set to Thermostat!"
 }
 
+def enableHandler(evt){
+    debuglog "EnableHandler- evt name: ${evt.name}, value: ${evt.value}" 
+	if evt.value=="on" {
+		state.enable = true  
+		TempSensorPolling(true)
+		CheckDiableCheckThermostatControl
+	}		
+	else {
+		state.enable = false
+		turnOffAll()
+		TempSensorPolling(false)
+	}
+	
+}
 
+def DeadmanHandler(enableDeadman)
+{
+	if (DeadmanTime){
+		if (enableDeadman){
+			state.deadman = true
+			CheckDiableCheckThermostatControl
+			runIn(60 * DeadmanTime, DeadmanHandler(false))
+		}
+		else{
+			state.deadman = false
+			turnOffAll
+		}
+	}
+}
 
+def TStatStateHandler(evt)
+{
+	state.ThermostatState = evt.value
+	CheckDiableCheckThermostatControl
+}
 
+def CheckDiableCheckThermostatControl
+{
+	if (state.deadman&&state.enable){
+		CheckThermostatControl
+	}
+	else{
+		turnOffAll
+	}
+}
 
+def CheckThermostatControl()
+{
+	switch(state.ThermostatState)
+	{
+		case"heating":
+			if (HeatSwitch){
+				HeatSwitch.on()
+			}
+			if (CoolSwitch){
+				CoolSwitch.off()
+			}
+		break
+		case "cooling":
+			if (HeatSwitch){
+				HeatSwitch.off()
+			}
+			if (CoolSwitch){
+				CoolSwitch.on()
+			}
+		break
+		case default:
+			turnOffAll
+		break
+	}
+}
 
+def turnOffAll()
+{
+	if (HeatSwitch){
+		HeatSwitch.off()
+	}
+	if (CoolSwitch){
+		CoolSwitch.off()
+	}
+}
 
+def TempSensorPolling(enable)
+{
+	if enable{
+		refreshTempSensor()
+	}
+	else{
+		unschedule(refreshTempSensor)
+	}
+}
+
+def refreshTempSensor()
+{
+	TemperatureSensor.refresh()
+	runIn(60 * refreshInt, refreshTempSensor)
+}
 
 def debuglog(statement)
 {   
@@ -180,6 +303,6 @@ def updateCheck(){
 }
 
 def setVersion(){
-                state.version = "1.0.1" // Version number of this app
-                state.InternalName = "VirtThermTempChild"   // this is the name used in the JSON file for this app
+                state.version = "1.0.0" // Version number of this app
+                state.InternalName = "ThermostatControlChild"   // this is the name used in the JSON file for this app
 }
