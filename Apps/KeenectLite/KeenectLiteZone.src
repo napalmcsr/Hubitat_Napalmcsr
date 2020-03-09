@@ -1,87 +1,67 @@
 /**
- *  V1.0.0 Init try
- *	V1.0.1 Added Heat and Cool vent opening limits
- *  V1.0.2 Added Multiple Vent control
- *  V1.0.4 Fixed vent not setting issue with recursive call 
- *  V1.0.5 Added a pause control and added vent control for slow/normal and fast slope and intercepts
- *  V1.0.6 Added local virtual thermostat control
- *  V1.0.7 Added treat idle as Fan Only
- *  V2.0.0 Added Digital Control and dashboard tile support
- *
- *  Copyright 2019 Craig Romei
- *
- *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- *  in compliance with the License. You may obtain a copy of the License at:
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
- *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
- *  for the specific language governing permissions and limitations under the License.
- *
- */
- 
-definition(
-    name: "KeenectLiteZone",
-    namespace: "Keenect",
-    author: "Craig Romei",
-    description: "zone application for 'Keenect', do not install directly.",
-    category: "My Apps",
-    parent: "Keenect:KeenectLiteMaster",
-    iconUrl: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/keenect/clipart-thermometer-thermometer-clipart-free-6-thermometer-clip-art-clipartix-free-clipart.jpg",
-    iconX2Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/keenect/clipart-thermometer-thermometer-clipart-free-6-thermometer-clip-art-clipartix-free-clipart.jpg",
-	iconX3Url	: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/keenect/clipart-thermometer-thermometer-clipart-free-6-thermometer-clip-art-clipartix-free-clipart.jpg"
-   
-)
+*  Virtual Thermostat Temperature Control Child
+*
+*  V1.0.0 Initial Release
+*
+*  Updates the temperature of a virtual thermostat using a temp sensor
+*
+*  Copyright 2018 Craig Romei
+*  GNU General Public License v2 (https://www.gnu.org/licenses/gpl-2.0.txt)
+*
+*/
 
+definition(
+    name: "Virtual Thermostat Control Child",
+    namespace: "napalmcsr",
+    author: "Craig Romei",
+    description: "Update a Virtual Thermostats temperature using a temperature sensor",
+    category: "Convenience",
+    parent: "napalmcsr:Virtual Thermostat Control Parent",
+    iconUrl: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg",
+    iconX2Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg",
+    iconX3Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg"
+)
 preferences {
     page(name: "pageConfig") // Doing it this way elimiates the default app name/mode options.
 }
 def pageConfig()
 {
 	dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0) {
-    section("Versioning")
-    {
-        display()
-    }
-	section("Pause")
-	{
-		input "PauseZone", "bool", title: "Pause KeenectLite from controlling this zone.", required: true, defaultValue: false, submitOnChange: true
-	}
-	section("Devices")
-	{
-		input "tStat", "capability.thermostat", title: "Zone Virtual Thermostat for setting zone setpoints", required: true
-		input name : "UseTstatMode", title : "Use Thermostat Mode to control vents", multiple : false ,required : true, type	: "bool" ,submitOnChange : true, defaultValue : false
-		input "vents", "capability.switchLevel", title: "Zone Vent",multiple: true, required: true
-		input "tempSensor", "capability.temperatureMeasurement", title: "Zone Temperature Sensor", multiple: false, required: true
-		input "DashboardTileUpdate", "capability.sensor", title: "Display Tile(If wanted):", required: false
-	}
-	section("Settings")
-	{
-		input "VentControlType", "enum", title: "How reactive do you want the vents? Aggressive keeps them open wider closer to target, Slow starts closing them further away from target. Binary is full open or close, based on limits.", submitOnChange: true,required : true,defaultValue	: "Normal", options: ["Aggressive", "Normal", "Slow","Binary"]
-		input name: "heatMinVo", title : "Heating minimum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
-		input name: "heatMaxVo", title : "Heating maximum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "100"
-		input name: "coldMinVo", title : "Cooling minimum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
-		input name: "coldMaxVo", title : "Cooling maximum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "100"
-		input name: "FanVo", title : "Fan mode opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
-		input name : "TreatIdleAsFan", title : "Treat Idle as Fan Only?", multiple : false ,required : true, type	: "bool" ,submitOnChange : true, defaultValue : false
-	}
-	section("Logging")
-	{input(
-		name : "logLevel"
-		,title : "IDE logging level" 
-		,multiple : false
-		,required : true
-		,type : "enum"
-		,options  : getLogLevels()
-		,submitOnChange : false
-		,defaultValue : "0"
+		section("Versioning")
+		{
+			display()
+		}
+		section("Sensor, Thermostat, and Switches")
+		{
+			input name : "tStat", type : "capability.thermostat", title: "Virtual thermostat control", required: true
+			input "TemperatureSensor", "capability.temperatureMeasurement", title: "Temperature Sensor:", required: true
+			input "enableSwitch", "capability.switch", title: "Switch that enables Thermostat Control (always on if not specified)", required: false
+			input "HeatSwitch", "capability.switch", title: "Switch that runs heating device", required: false
+			input "CoolSwitch", "capability.switch", title: "Switch that runs cooling device", required: false
+		}	
+		section("Timer Settings")
+		{
+			input "refreshInt", "number", title: "Number of Minutes between temp sensor refreshes:", required: true, defaultValue:  5
+			input "DeadmanTime", "number", title: "Maximun number of minutes between temp sensor updates until heat and ccol are disabled:", required: false, defaultValue:  11
+		}
+
+		section("Logging")
+		{                       
+			input(
+			name                      : "logLevel"
+			,title                       : "IDE logging level" 
+			,multiple        : false
+			,required                : true
+			,type                       : "enum"
+			,options              : getLogLevels()
+			,submitOnChange : false
+			,defaultValue : "0"
 			)  
 		}
-		
-		 section() {label title: "Enter a name for this automation", required: false}
+		section() {label title: "Enter a name for this automation", required: false}
 	}
 }
+
 def installed()
 {
     initialize()
@@ -90,326 +70,198 @@ def installed()
 def updated()
 {
     unsubscribe()
+	unschedule()
     initialize()
 }
 
-def initialize(){
-	infolog "Init"
-	state.clear()
-	debuglog "Subscribe to tempSensor"
-	subscribe(tempSensor, "temperature", tempHandler)
-	debuglog "Subscribe to vents"
-	subscribe(vents, "level", ventHandler)
-	debuglog "Subscribe to Tstat"
-	subscribe(tStat, "heatingSetpoint", setTstatHSP)
-	subscribe(tStat, "coolingSetpoint", setTstatCSP)
-	if(UseTstatMode)
-	{
-		subscribe(tStat, "thermostatMode", setTstatMode)
-		debuglog "Getting local virtual Thermostat thermostatMode" 
-		state.thermostatMode = tStat.currentValue("thermostatMode").toUpperCase()
-	}
-	debuglog "Getting Thermostat Heating Setpoint" 
-	state.zoneHeatSetpoint = tStat.currentValue("heatingSetpoint")
-	debuglog "Getting Thermostat Cooling Setpoint" 
-	state.zoneColdSetpoint = tStat.currentValue("coolingSetpoint")
-	debuglog "Getting current Zone Temperature" 
-	state.currentTemperature = tempSensor.currentValue("temperature")
-	debuglog "Getting House Thermostat State and evaluating zone"
-	state.mainTstatState = parent.ChildGetMainTstatState()
-	debuglog "Getting All Vent Opening"
-	state.VentOpeningMap = [:]
-	vents.each{ vent ->
-		debuglog "Getting Vent ${vent}"
-		state.VentOpeningMap[vent.displayName] =vent.currentValue("level")
-	}
-    zoneEvaluate()
-	state.remove("state.VentOpening")
-	infolog "Done init"
-}
-
-def setTstatMode(evt)
+def initialize()
 {
-	infolog "Running setTstatMode"
-	state.thermostatMode = evt.value.toUpperCase()
-	zoneEvaluate()
-}
-
-def MainTstatStateChange(mainTStatState) {
-	infolog "Running MainTstatStateChange"
-	state.mainTstatState = mainTStatState
-	zoneEvaluate()
-}
-
-def setTstatHSP(evt) {
-	infolog "Running setTstatHSP"
-	state.zoneHeatSetpoint =evt.value.toFloat()
-	debuglog "Hot setpoint set to ${state.zoneHeatSetpoint}"
-	zoneEvaluate()
-}
-
-def setTstatCSP(evt) {
-	infolog "Running setTstatCSP"
-	state.zoneColdSetpoint = evt.value.toFloat()
-	debuglog "Cold setpoint set to ${state.zoneColdSetpoint}"
-	zoneEvaluate()
-}
-
-def tempHandler(evt) {
-	infolog "Running tempHandler"
-	state.currentTemperature = evt.value.toFloat()
-	debuglog "Zone Temperature set to ${state.currentTemperature}"
-	zoneEvaluate()
-}
-
-def ventHandler(evt) {
-	infolog "Running ventHandler for ${evt.device} value: ${evt.value}"
-	infolog "state.VentOpeningMap =  ${state.VentOpeningMap}"
-	state.VentOpeningMap = [:]
-	vents.each{ vent ->
-		debuglog "Getting Vent ${vent}"
-		state.VentOpeningMap[vent.displayName] =vent.currentValue("level")
+    infolog "Initializing"
+	Unschedule
+	unsubscribe
+	subscribe(TemperatureSensor, "temperature", TemperatureHandler)
+	subscribe(tStat, "thermostatOperatingState", TStatStateHandler)
+	if (enableSwitch!=""){
+        debuglog "Subscribed"
+		subscribe(enableSwitch, "switch", enableHandler)
 	}
-	infolog "state.VentOpeningMap after =  ${state.VentOpeningMap}"
-	//state.VentOpeningMap[vent.displayName] =vent.currentValue("level")
-    sendDisplayTile()
-	debuglog "${evt.device} was set to ${evt.value}"
-}
-
-def zoneEvaluate(){
-	infolog "Running zoneEvaluate"
-	Map VentParams = [:]
-    debuglog "zoneEvaluate: ventmode: ${state.mainTstatState}"
-	if ((state.mainTstatState!="IDLE")||TreatIdleAsFan){
-		switch (state.mainTstatState){
-			case "HEATING" :
-				VentParams = SetHeatVentParams()
-				break
-			case "COOLING" :
-				VentParams = SetCoolVentParams()
-				break
-			case "FAN ONLY" :
-				VentParams = SetFanVentParams()
-				break
-			case "IDLE" :
-				VentParams = SetFanVentParams()
-				break
-			default :
-				VentParams = SetErrorVentParams()
-				break
-				   
-		} 
-		infolog "zoneEvaluate:Check Tstat Mode"
-		CheckTstatMode(VentParams)
-		infolog "zoneEvaluate:Calculate Vent Opening"
-		CalculteVent(VentParams)
-		infolog "zoneEvaluate:Set The Vent"
-		state.zoneVoLocal =  VentParams.ventOpening
-		setVents(VentParams.ventOpening)
+	debuglog "Getting current Temperature and updating Thermostat" 
+	state.deadman = false
+	state.ThermostatState = tStat.currentValue("thermostatOperatingState")
+	if (!enableSwitch) {
+		state.enable = true  
+		TempSensorPolling(true)
+		runIn(15*1,CheckDisableCheckThermostatControl)
 	}
-    sendDisplayTile()
-	infolog "zoneEvaluate: --EXIT"
-}
-
-
-def CheckTstatMode(VentParams)
-{
-	if(UseTstatMode)
-	{	
-		if (!(state.mainTstatState.contains(state.thermostatMode)||(state.thermostatMode=="AUTO")))
-		{
-			debuglog "CheckTstatMode: Not in the tstat mode, state.mainTstatState= ${state.mainTstatState} - state.thermostatMode= ${state.thermostatMode}"
-			VentParams.tempDelta = 0.1
-			VentParams.ventSlope = 0
-			VentParams.ventIntercept = VentParams.MinVo
-		}
+	if(HeatSwitch) {
+	subscribe(tStat, "heatingSetpoint", HeatSPHandler)
+	state.HeatSP = tatat.currentValue("heatingSetpoint")
 	}
-}
-
-def CalculteVent(Map VentParams){
-	
-	VentParams.ventOpening = Math.round(VentParams.tempDelta*VentParams.ventSlope.toInteger()+VentParams.ventIntercept.toInteger())
-	debuglog "CalculteVent- VentParams.ventOpening before limit checks: ${VentParams.ventOpening}"
-	if (VentParams.ventOpening>VentParams.MaxVo.toInteger()){
-		debuglog "CalculteVent- VentParams.ventOpening greater than Max"
-		VentParams.ventOpening = VentParams.MaxVo.toInteger()
+	if(CoolSwitch) {
+	subscribe(tStat, "coolingSetpoint", CoolSPHandler)
+	state.CoolSP = tatat.currentValue("coolingSetpoint")
 	}
-	if (VentParams.ventOpening<VentParams.MinVo.toInteger()){
-		debuglog"CalculteVent- VentParams.ventOpening less than Min"
-		VentParams.ventOpening = VentParams.MinVo.toInteger()
+	else if (enableSwitch.currentValue("switch") == "on") {
+		state.enable = true  
+		TempSensorPolling(true)
+		runIn(15*1,CheckDisableCheckThermostatControl)
 	}
-	debuglog "CalculteVent- VentParams.ventOpening after limit checks: ${VentParams.ventOpening}"
-	
-}
-
-	
-def SetCoolVentParams(){
-	Map resultMap = [:]
-	debuglog "Setting vent Params Cool"
-    state.activeSetPoint = state.zoneColdSetpoint
-	resultMap.tempDelta = state.currentTemperature - state.zoneColdSetpoint
-	debuglog "SetCoolVentParams- resultMap.tempDelta: ${resultMap.tempDelta}"
-	debuglog "SetCoolVentParams- Vent Control Set to: ${VentControlType}"
-	switch (VentControlType){
-			case "Aggressive" :
-				resultMap.ventSlope = (coldMaxVo.toInteger()-coldMinVo.toInteger())*2
-				resultMap.ventIntercept = (coldMaxVo.toInteger()-coldMinVo.toInteger())/5+coldMinVo.toInteger()
-				break
-			case "Normal" :
-				resultMap.ventSlope = (coldMaxVo.toInteger()-coldMinVo.toInteger())
-				resultMap.ventIntercept = coldMinVo.toInteger()
-				break
-			case "Slow" :
-				resultMap.ventSlope = (coldMaxVo.toInteger()-coldMinVo.toInteger())/2
-				resultMap.ventIntercept = coldMinVo.toInteger()
-				break
-			case "Binary" :
-				resultMap.ventSlope = 10000
-				resultMap.ventIntercept = coldMinVo.toInteger()
-				break
-			default :
-				resultMap.ventSlope = (coldMaxVo.toInteger()-heatMinVo.toInteger())
-				resultMap.ventIntercept = coldMinVo.toInteger()
-				break
-		}
-	debuglog "SetCoolVentParams- ventSlope Set to: ${resultMap.ventSlope}"
-	debuglog "SetCoolVentParams- ventIntercept Set to: ${resultMap.ventIntercept}"
-	resultMap.ventOpening = 50
-	resultMap.MaxVo = coldMaxVo
-	resultMap.MinVo = coldMinVo
-	return resultMap
-}
-
-def SetHeatVentParams(){
-	Map resultMap = [:]
-	debuglog "Setting vent Params Cool"
-    state.activeSetPoint = state.zoneHeatSetpoint
-	resultMap.tempDelta = state.zoneHeatSetpoint - state.currentTemperature
-	debuglog "SetHeatVentParams- resultMap.tempDelta: ${resultMap.tempDelta}"
-	debuglog "SetHeatVentParams- Vent Control Set to: ${VentControlType}"
-	switch (VentControlType){
-			case "Aggressive" :
-				resultMap.ventSlope = (heatMaxVo.toInteger()-heatMinVo.toInteger())*2
-				resultMap.ventIntercept = (heatMaxVo.toInteger()-heatMinVo.toInteger())/5+heatMinVo.toInteger()
-				break
-			case "Normal" :
-				resultMap.ventSlope = (heatMaxVo.toInteger()-heatMinVo.toInteger())
-				resultMap.ventIntercept = heatMinVo.toInteger()
-				break
-			case "Slow" :
-				resultMap.ventSlope = (heatMaxVo.toInteger()-heatMinVo.toInteger())/2
-				resultMap.ventIntercept = heatMinVo.toInteger()
-				break
-			case "Binary" :
-				resultMap.ventSlope = 10000
-				resultMap.ventIntercept = heatMinVo.toInteger()
-				break
-			default :
-				resultMap.ventSlope = (heatMaxVo.toInteger()-heatMinVo.toInteger())
-				resultMap.ventIntercept = heatMinVo.toInteger()
-				break
-		}
-	debuglog "SetHeatVentParams- ventSlope Set to: ${resultMap.ventSlope}"
-	debuglog "SetHeatVentParams- ventIntercept Set to: ${resultMap.ventIntercept}"
-	
-	resultMap.ventOpening = 50
-	resultMap.MaxVo = heatMaxVo
-	resultMap.MinVo = heatMinVo
-	return resultMap
-}
-
-def SetFanVentParams(){
-	Map resultMap = [:]
-	debuglog "Setting vent Params Fan"
-	def zoneTempLocal = state.zoneTemp
-	resultMap.tempDelta = 0.1
-	resultMap.ventSlope = 0
-	resultMap.ventIntercept = settings.FanVo.toInteger()
-	resultMap.ventOpening = 50
-	resultMap.MaxVo = 100
-	resultMap.MinVo = 0
-	return resultMap
-}
-
-def SetErrorVentParams(){
-	Map resultMap = [:]
-	debuglog "Setting vent Params ERROR"
-	resultMap.tempDelta = 0.1
-	resultMap.ventSlope = 0	
-	resultMap.ventIntercept = 50
-	resultMap.ventOpening = 50
-	resultMap.MaxVo = 100
-	resultMap.MinVo = 0
-	return resultMap
-}
-
-
-
-def setVents(newVo){
-	debuglog "Opening Vent to ${newVo}"
-	if(!PauseZone){
-		vents.each{vent ->
-			debuglog "${vent} : ${state.VentOpeningMap[vent.displayName]}"
-			if (((state.VentOpeningMap[vent.displayName].toInteger()-newVo.toInteger())>7) || ((state.VentOpeningMap[vent.displayName].toInteger()-newVo.toInteger())<-7)){
-				debuglog "Vent was far enough away to move"
-				vent.setLevel(newVo)
-				runIn(60*1, ventcheck)
-			}
-		}
-	} else{
-		debuglog "Zone Paused, not moving the Vents"
-	}
-}
-
-def ventcheck(){
-	//if (state.enabled == true){
-    debuglog "ventcheck:enter- "
-	setVents(state.zoneVoLocal)
-    debuglog "ventcheck:exit- "
-	//}
-}
-
-def sendDisplayTile()
-{
-    if(DashboardTileUpdate)
-    {
-        def reportString = app.label +"<br>"
-        reportString += "Mode: "+state.mainTstatState+"<br>"
-        reportString += "Setpoint: "+state.activeSetPoint+"<br>"
-        reportString += "Temp: "+state.currentTemperature+"<br>"
-        
-	    vents.each{ vent ->
-            reportString += vent.displayName+": "+vent.currentValue("level")+"<br>"
-	    }
-        debuglog "zoneEvaluate: ${reportString}"
-        DashboardTileUpdate.SetKeenectData(reportString)
+    else{
+        state.enable = false
     }
+    //version()
+    infolog "Done initializing"
 }
 
+def HeatSPHandler(evt){
+	debuglog "HeatSPHandler- evt name: ${evt.name}, value: ${evt.value}" 
+	state.HeatSP = evt.value.toFloat()
+}
 
+def CoolSPHandler(evt){
+	debuglog "CoolSPHandler- evt name: ${evt.name}, value: ${evt.value}" 
+	state.CoolSP = evt.value.toFloat()
+}
 
+def TemperatureHandler(evt){
+    debuglog "TemperatureHandler- evt name: ${evt.name}, value: ${evt.value}" 
+    state.lastTemp = evt.value.toFloat()   
+	tStat.setTemperature(state.lastTemp)
+	DeadmanHandler()
+	infolog "Temperature Set to Thermostat!"
+}
 
+def enableHandler(evt){
+    debuglog "EnableHandler- evt name: ${evt.name}, value: ${evt.value}" 
+	if (evt.value=="on") {
+		state.enable = true  
+		TempSensorPolling(true)
+		CheckDisableCheckThermostatControl()
+	}		
+	else {
+		state.enable = false
+		turnOffAll()
+		TempSensorPolling(false)
+	}
+	
+}
 
+def DeadmanHandler()
+{
+    debuglog "DeadmanHandler- enableDeadman:" 
+//	if (DeadmanTime!=""){
+        state.deadman = true
+        debuglog "Deadman on"
+        if (state.enable)
+        {
+            CheckDisableCheckThermostatControl()
+        }
+        runIn(60 * DeadmanTime, DeadmanOff)
+//	}
+}
 
+def DeadmanOff()
+{
+    state.deadman = false
+    debuglog "Deadman off"
+    turnOffAll()
+}
+
+def TStatStateHandler(evt)
+{
+    debuglog "state.ThermostatState: " + evt.value
+	state.ThermostatState = evt.value
+	CheckDisableCheckThermostatControl()
+}
+
+def CheckDisableCheckThermostatControl()
+{
+	if (state.deadman&&state.enable){
+		CheckThermostatControl()
+	}
+	else{
+        debuglog "state.deadman: " + state.deadman
+        debuglog "state.enable: " + state.enable
+		turnOffAll()
+	}
+}
+
+def CheckThermostatControl()
+{
+    debuglog "state.ThermostatState: " + state.ThermostatState
+	switch(state.ThermostatState)
+	{
+		case "heating":
+            debuglog "turn On Heating"
+			if (HeatSwitch){
+				HeatSwitch.on()
+			}
+			if (CoolSwitch){
+				CoolSwitch.off()
+			}
+		break
+		case "cooling":
+            debuglog "turn On cooling"
+			if (HeatSwitch){
+				HeatSwitch.off()
+			}
+			if (CoolSwitch){
+				CoolSwitch.on()
+			}
+		break
+		default:
+            debuglog "Turn Off Everything"
+			turnOffAll()
+		break
+	}
+}
+
+def turnOffAll()
+{
+    debuglog "turn off everything"
+	if (HeatSwitch){
+		HeatSwitch.off()
+	}
+	if (CoolSwitch){
+		CoolSwitch.off()
+	}
+}
+
+def TempSensorPolling(enable)
+{
+	if (enable){
+		refreshTempSensor()
+	}
+	else{
+		unschedule(refreshTempSensor)
+	}
+}
+
+def refreshTempSensor()
+{
+    debuglog "Refreshing Temp Sensor"
+	TemperatureSensor.refresh()
+	runIn(60 * refreshInt, refreshTempSensor)
+}
 
 def debuglog(statement)
 {   
-    def logL = 0
+               def logL = 0
     if (logLevel) logL = logLevel.toInteger()
     if (logL == 0) {return}//bail
     else if (logL >= 2)
-	{
-	  	log.debug(statement)
-	}
+               {
+                              log.debug(statement)
+               }
 }
 def infolog(statement)
 {       
-    def logL = 0
+               def logL = 0
     if (logLevel) logL = logLevel.toInteger()
     if (logL == 0) {return}//bail
     else if (logL >= 1)
-    {
-    	log.info(statement)
+               {
+                              log.info(statement)
     }
 }
 def getLogLevels(){
@@ -422,8 +274,6 @@ def version(){
 }
 
 def display(){
-	updateCheck()
-	debuglog "state.Status: ${state.Status}"
         if(state.Status){
         section{paragraph "Version: $state.version -  $state.Copyright"}
         
@@ -476,6 +326,6 @@ def updateCheck(){
 }
 
 def setVersion(){
-                state.version = "2.0.0" // Version number of this app
-                state.InternalName = "KeenectLiteZone"   // this is the name used in the JSON file for this app
-				}
+                state.version = "1.0.0" // Version number of this app
+                state.InternalName = "ThermostatControlChild"   // this is the name used in the JSON file for this app
+}
