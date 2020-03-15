@@ -93,6 +93,14 @@ def initialize()
 		TempSensorPolling(true)
 		runIn(15*1,CheckDisableCheckThermostatControl)
 	}
+	if(HeatSwitch) {
+	subscribe(tStat, "heatingSetpoint", HeatSPHandler)
+	state.HeatSP = tatat.currentValue("heatingSetpoint")
+	}
+	if(CoolSwitch) {
+	subscribe(tStat, "coolingSetpoint", CoolSPHandler)
+	state.CoolSP = tatat.currentValue("coolingSetpoint")
+	}
 	else if (enableSwitch.currentValue("switch") == "on") {
 		state.enable = true  
 		TempSensorPolling(true)
@@ -103,6 +111,16 @@ def initialize()
     }
     //version()
     infolog "Done initializing"
+}
+
+def HeatSPHandler(evt){
+	debuglog "HeatSPHandler- evt name: ${evt.name}, value: ${evt.value}" 
+	state.HeatSP = evt.value.toFloat()
+}
+
+def CoolSPHandler(evt){
+	debuglog "CoolSPHandler- evt name: ${evt.name}, value: ${evt.value}" 
+	state.CoolSP = evt.value.toFloat()
 }
 
 def TemperatureHandler(evt){
