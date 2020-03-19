@@ -95,11 +95,11 @@ def initialize()
 	}
 	if(HeatSwitch) {
 	subscribe(tStat, "heatingSetpoint", HeatSPHandler)
-	state.HeatSP = tatat.currentValue("heatingSetpoint")
+	state.HeatSP = tStat.currentValue("heatingSetpoint")
 	}
 	if(CoolSwitch) {
 	subscribe(tStat, "coolingSetpoint", CoolSPHandler)
-	state.CoolSP = tatat.currentValue("coolingSetpoint")
+	state.CoolSP = tStat.currentValue("coolingSetpoint")
 	}
 	else if (enableSwitch.currentValue("switch") == "on") {
 		state.enable = true  
@@ -128,6 +128,7 @@ def TemperatureHandler(evt){
     state.lastTemp = evt.value.toFloat()   
 	tStat.setTemperature(state.lastTemp)
 	DeadmanHandler()
+    checkTempRange()
 	infolog "Temperature Set to Thermostat!"
 }
 
@@ -227,12 +228,38 @@ def turnOffAll()
 	}
 }
 
+def checkTempRange()
+{
+    outofRange=false
+    if (HeatSwitch){
+        if (state.HeatSP+1.25<state.lastTemp){
+            outofRange=true
+            debuglog "Heat OOR"
+        }
+    }
+    if (CoolSwitch){
+        if (state.CoolSP-1.25>state.lastTemp){
+            outofRange=true
+            debuglog "Cool OOR"
+        }
+    }
+    state.outofRange=outofRange
+    if (outofRange){
+        TempSensorPolling(false)
+    }
+    else{
+        runIn(60 * refreshInt, refreshTempSensor)
+    }
+        
+}
+
 def TempSensorPolling(enable)
 {
 	if (enable){
 		refreshTempSensor()
 	}
 	else{
+        debuglog "Turn Off Polling"
 		unschedule(refreshTempSensor)
 	}
 }
@@ -241,7 +268,6 @@ def refreshTempSensor()
 {
     debuglog "Refreshing Temp Sensor"
 	TemperatureSensor.refresh()
-	runIn(60 * refreshInt, refreshTempSensor)
 }
 
 def debuglog(statement)
