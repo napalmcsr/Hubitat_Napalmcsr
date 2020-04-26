@@ -31,17 +31,9 @@ def pageConfig()
     }
     section("Pool Run Limits")
     {
-        input(
-            		name		: "OutsideTemp"
-                	,title		: "Outside Temperature sensor"
-                	,multiple	: false
-                	,required	: true
-                	,type		: "capability.temperatureMeasurement"
-                    ,submitOnChange	: false
-            	) 
 		input "HotHours", "number", title: "Number of Hours to run in Hot Months:", required: true, defaultValue:  8
 		input "ColdHours", "number", title: "Number of Hours to run in Cold Months:", required: true, defaultValue:  8
-        input "TimeToRun", "time", title: "Time to execute every day", required: true
+        	input "TimeToRun", "time", title: "Time to execute every day", required: true
 	}
     section("Manual Activation")
     {
@@ -68,26 +60,11 @@ def initialize()
     log.debug "${TimeToRun}"
 	state.AutomaticallyTurnedOn =false
     subscribe(PoolSwitch, "switch", PoolSwitchHandler)
-    subscribe(OutsideTemp, "temperature", TempChangeHandler)
     schedule(TimeToRun, Timehandler)
     state.DayTempHi = -200
     state.DayTempLo = 200
     log.info "initialize- state.DayTempLo: ${state.DayTempLo}, state.DayTempHi: ${state.DayTempHi}"
 }
-
-def TempChangeHandler(evt){
-    log.info "TempChangeHandler- evt name: ${evt.name}, value: ${evt.value}"
-    log.info "TempChangeHandler- Before state.DayTempLo: ${state.DayTempLo}, state.DayTempHi: ${state.DayTempHi}"
-    def fltTemp = evt.value.toFloat()
-    if (fltTemp>state.DayTempHi){ 
-    	state.DayTempHi = fltTemp
-    }  
-    if (fltTemp<state.DayTempLo){ 
-    	state.DayTempLo = fltTemp
-    }   
-    log.info "TempChangeHandler- After state.DayTempLo: ${state.DayTempLo}, state.DayTempHi: ${state.DayTempHi}"
-}
-
 
 def Timehandler()
 {
