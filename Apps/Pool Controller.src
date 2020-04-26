@@ -61,9 +61,6 @@ def initialize()
 	state.AutomaticallyTurnedOn =false
     subscribe(PoolSwitch, "switch", PoolSwitchHandler)
     schedule(TimeToRun, Timehandler)
-    state.DayTempHi = -200
-    state.DayTempLo = 200
-    log.info "initialize- state.DayTempLo: ${state.DayTempLo}, state.DayTempHi: ${state.DayTempHi}"
 }
 
 def Timehandler()
@@ -100,9 +97,6 @@ def Timehandler()
     log.debug "TimeToRun: ${TimeToRun}"
    // sendNotificationEvent("Running the Pool Pump for ${RunTime} hours.")
     runIn(TimeToRun.toInteger(), TurnOffPoolSwitch)
-    
-    state.DayTempHi = -200
-    state.DayTempLo = 200
 }
 
 def PoolSwitchHandler(evt)
@@ -148,4 +142,3 @@ def TurnOffPoolSwitch()
     //	sendNotificationEvent("Turning off the Pool Pump")
     }
 }
-
