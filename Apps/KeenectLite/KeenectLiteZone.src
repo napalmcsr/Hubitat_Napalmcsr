@@ -23,11 +23,11 @@
  
 definition(
     name: "KeenectLiteZone",
-    namespace: "Keenect",
+    namespace: "Craig.Romei",
     author: "Craig Romei",
     description: "zone application for 'Keenect', do not install directly.",
     category: "My Apps",
-    parent: "Keenect:KeenectLiteMaster",
+    parent: "Craig.Romei:KeenectLiteMaster",
     iconUrl: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/keenect/clipart-thermometer-thermometer-clipart-free-6-thermometer-clip-art-clipartix-free-clipart.jpg",
     iconX2Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/keenect/clipart-thermometer-thermometer-clipart-free-6-thermometer-clip-art-clipartix-free-clipart.jpg",
 	iconX3Url	: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/keenect/clipart-thermometer-thermometer-clipart-free-6-thermometer-clip-art-clipartix-free-clipart.jpg"
