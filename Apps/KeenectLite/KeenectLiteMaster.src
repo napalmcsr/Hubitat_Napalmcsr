@@ -49,7 +49,7 @@ def pageConfig()
 	{
 		if (installed){
 			section("Zones"){
-				app(name: "childZones", appName: "KeenectLiteZone", namespace: "Keenect", title: "Create New Vent Zone...", multiple: true)	
+				app(name: "childZones", appName: "KeenectLiteZone", namespace: "Craig.Romei", title: "Create New Vent Zone...", multiple: true)	
 			}
         }
 		
