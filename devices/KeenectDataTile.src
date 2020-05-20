@@ -17,7 +17,7 @@
 
 metadata {
 		definition (name: "KeenectLiteDisplay", 
-					namespace: "napalmcsr", 
+					namespace: "Craig.Romei", 
 					author: "Craig Romei")
 			{
 				capability "Sensor"
@@ -190,6 +190,6 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.0.0"	 // Version number of this driver
+		state.Version = "1.0.1"	 // Version number of this driver
 		state.InternalName = "KeenectDataTile"   // this is the name used in the JSON file for this driver
 }
