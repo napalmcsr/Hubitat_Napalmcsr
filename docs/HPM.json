@@ -1,0 +1,13 @@
+{
+	"author": "Dominick Meglio",
+	"gitHubUrl": "https://github.com/napalmcsr",
+	"packages": [
+		{
+			"name": "KeenectLite",
+			"category": "Control",
+			"location": "https://raw.githubusercontent.com/napalmcsr/Hubitat_Napalmcsr/master/docs/keenect.json",
+			"description": "Controls keen vents by zone"
+		}
+	]
+	
+}
