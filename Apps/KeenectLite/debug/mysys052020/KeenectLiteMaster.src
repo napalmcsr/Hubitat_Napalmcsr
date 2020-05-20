@@ -1,0 +1,217 @@
+/**
+ *  V1.0.0 Init try
+ *  V1.0.1 Removed mode restriction
+ *
+ *  Copyright 2019 Craig Romei
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License. You may obtain a copy of the License at:
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+ *  for the specific language governing permissions and limitations under the License.
+ *
+ */
+ 
+ definition(
+    name		: "KeenectLiteMaster",
+    namespace	: "Craig.Romei",
+    author		: "Craig Romei",
+    description	: "Keen Vent Manager",
+    category	: "My Apps",
+    iconUrl		: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/keenect/clipart-thermometer-thermometer-clipart-free-6-thermometer-clip-art-clipartix-free-clipart.jpg",
+    iconX2Url	: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/keenect/clipart-thermometer-thermometer-clipart-free-6-thermometer-clip-art-clipartix-free-clipart.jpg",
+	iconX3Url	: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/keenect/clipart-thermometer-thermometer-clipart-free-6-thermometer-clip-art-clipartix-free-clipart.jpg"
+    )
+
+preferences {
+    page(name: "pageConfig") // Doing it this way elimiates the default app name/mode options.
+}
+def pageConfig()
+{
+	dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0) {
+    section("Versioning")
+    {
+        display()
+    }
+	section("Reports")
+	{
+	}
+	section("Setup")
+	{
+		input name : "tStat", type : "capability.thermostat", title: "Main Household thermostat", required: true
+		input name : "isACcapable", title : "System is AC capable", multiple : false ,required : true, type	: "bool" ,submitOnChange : true, defaultValue : true
+	}
+	section("Zones")
+	{
+		if (installed){
+			section("Zones"){
+				app(name: "childZones", appName: "KeenectLiteZone", namespace: "Craig.Romei", title: "Create New Vent Zone...", multiple: true)	
+			}
+        }
+		
+	}
+	section("Logging")
+	{input(
+		name : "logLevel"
+		,title : "IDE logging level" 
+		,multiple : false
+		,required : true
+		,type : "enum"
+		,options  : getLogLevels()
+		,submitOnChange : false
+		,defaultValue : "0"
+			)  
+		}
+	}
+}
+def installed() {initialize()}
+def updated() {initialize()}
+def initialize() {
+	infolog "Initializing"
+    unsubscribe()
+	version()
+    subscribe(tStat, "thermostatOperatingState", OperatingStateHandler)    
+	debuglog "Getting Thermostat running State" 
+	state.mainState = state.mainState ?: getMainTstatState()
+    debuglog "There are ${childApps.size()} installed child apps"
+    childApps.each {child ->
+    debuglog "Child app: ${child.label}"
+    }    
+    state.childTemps= [:]
+    state.childSetpoint= [:]
+    state.childVentOpening= [:]
+}
+
+def getMainTstatState(){
+	def TstatState = tStat.currentValue("thermostatOperatingState")
+	if (TstatState!=null){
+		TstatState = TstatState.toUpperCase()
+	} else {
+    	TstatState = "NULL"
+    }
+    debuglog "getMainTstatState Main TstatState : ${TstatState}"
+	return TstatState
+ }
+
+def OperatingStateHandler(evt) {
+	debuglog "OperatingStateHandler event : ${evt}"
+	def newTstatState = evt.value.toUpperCase()
+	if (newTstatState != state.mainState) {
+		state.mainState = newTstatState
+		SendTstatStateChange()
+	}
+
+}
+
+def SendTstatStateChange(){
+	debuglog "Sending TStat Change to Zones ${state.mainState}"
+	
+	childApps.each {child ->
+    	child.MainTstatStateChange(state.mainState)
+        pause(1000)
+    }
+}
+
+def ChildGetMainTstatState() {
+	return state.mainState
+}
+
+def SetChildStats(ZoneStat){
+    debuglog ZoneStat
+    state.childTemps[ZoneStat.title]= ZoneStat.currentTemperature
+    state.childSetpoint[ZoneStat.title]= ZoneStat.setpoint
+    state.childVentOpening[ZoneStat.title]= ZoneStat.vent
+    debuglog state.childTemps
+    debuglog state.childSetpoint
+    debuglog state.childVentOpening
+}
+
+
+def debuglog(statement)
+{   
+    def logL = 0
+    if (logLevel) logL = logLevel.toInteger()
+    if (logL == 0) {return}//bail
+    else if (logL >= 2)
+               {
+                              log.debug(statement)
+               }
+}
+def infolog(statement)
+{       
+               def logL = 0
+    if (logLevel) logL = logLevel.toInteger()
+    if (logL == 0) {return}//bail
+    else if (logL >= 1)
+               {
+                              log.info(statement)
+    }
+}
+def getLogLevels(){
+    return [["0":"None"],["1":"Running"],["2":"NeedHelp"]]
+}
+def version(){
+        unschedule()
+        schedule("0 0 9 ? * FRI *", updateCheck) // Cron schedule - How often to perform the update check - (This example is 9am every Friday)
+        updateCheck()  
+}
+
+def display(){
+        if(state.Status){
+			section{paragraph "Version: $state.version -  $state.Copyright"}
+
+			if(state.Status != "Current"){
+			section{ 
+				paragraph "$state.Status"
+				paragraph "$state.UpdateInfo"
+    		}
+    	}
+}
+}
+
+
+def updateCheck(){
+    setVersion()
+        def paramsUD = [uri: "https://napalmcsr.github.io/Hubitat_Napalmcsr/versions.json"]   // This is the URI & path to your hosted JSON file
+       try {
+        httpGet(paramsUD) { respUD ->
+//  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
+                def copyrightRead = (respUD.data.copyright)
+                state.Copyright = copyrightRead
+            def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
+            def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
+                def currentVer = state.version.replace(".", "")
+                state.UpdateInfo = (respUD.data.versions.UpdateInfo.Application.(state.InternalName))
+                state.author = (respUD.data.author)
+           
+                if(newVer == "NLS"){
+            state.Status = "<b>** This app is no longer supported by $state.author  **</b> (But you may continue to use it)"       
+            log.warn "** This app is no longer supported by $state.author **"      
+                }           
+                else if(currentVer < newVer){
+        state.Status = "<b>New Version Available (Version: $newVerRaw)</b>"
+        log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
+        log.warn "** $state.UpdateInfo **"
+                } 
+                else{ 
+                state.Status = "Current"
+                log.info "You are using the current version of this app"
+                }
+                                       }
+        } 
+        catch (e) {
+            state.Status = "Error"
+        log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
+                }
+                
+    
+        //     
+}
+
+def setVersion(){
+                state.version = "1.0.1" // Version number of this app
+                state.InternalName = "KeenectLiteMaster"   // this is the name used in the JSON file for this app
+				}
