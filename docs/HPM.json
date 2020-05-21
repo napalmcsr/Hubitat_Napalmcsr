@@ -7,6 +7,24 @@
       "category": "Control",
       "location": "https://raw.githubusercontent.com/napalmcsr/Hubitat_Napalmcsr/master/docs/keenectManifest.json",
       "description": "Controls Keen Vents using temp sensors"
+    },
+    {
+      "name": "Pool Controller",
+      "category": "Control",
+      "location": "https://raw.githubusercontent.com/napalmcsr/Hubitat_Napalmcsr/master/docs/poolManifest.json",
+      "description": "Controls a pool pump based on calendar Month"
+    },
+    {
+      "name": "Smart Humidity Fan",
+      "category": "Control",
+      "location": "https://raw.githubusercontent.com/napalmcsr/Hubitat_Napalmcsr/master/docs/HumidityManifest.json",
+      "description": "Controls a Bathroom Fan Based on humidity and/or time"
+    },
+    {
+      "name": "Thermostat Tracker",
+      "category": "Convenience",
+      "location": "https://raw.githubusercontent.com/napalmcsr/Hubitat_Napalmcsr/master/docs/ThermostatTrackerManifest.json",
+      "description": "Tracks Thermostat usage by Thermostat State"
     }
   ]
 }
