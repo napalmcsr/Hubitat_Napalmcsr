@@ -1,0 +1,26 @@
+{
+  "packageName": "ThermostatTracker",
+  "author": "napalmcsr",
+  "version": "1.0",
+  "minimumHEVersion": "2.1.9",
+  "dateReleased": "2020-05-20",
+  "apps": [
+    {
+      "id": "aa6f1376-f973-4ce8-957b-91191474e6bc",
+      "name": "Thermostat Tracker",
+      "namespace": "Craig.Romei",
+      "location": "https://raw.githubusercontent.com/napalmcsr/Hubitat_Napalmcsr/master/Apps/ThermostatTracker/ThermostatTracker.src",
+      "required": true,
+      "oauth": false
+    }
+  ],
+  "drivers": [
+    {
+      "id": "fb8b4642-1fcd-4ce9-b22c-ba307d54459b",
+      "name": "ThermostatHistoryTileDisplay",
+      "namespace": "napalmcsr",
+      "location": "https://raw.githubusercontent.com/napalmcsr/Hubitat_Napalmcsr/master/devices/ThermostatHistoryTileDisplay.src",
+      "required": true
+    }
+  ]
+}
