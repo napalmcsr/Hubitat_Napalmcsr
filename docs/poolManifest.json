@@ -1,0 +1,17 @@
+{
+  "packageName": "PoolController",
+  "author": "napalmcsr",
+  "version": "1.0",
+  "minimumHEVersion": "2.1.9",
+  "dateReleased": "2020-05-20",
+  "apps": [
+    {
+      "id": "2c22b27a-7afc-430e-97dd-ca0eb7f8a598",
+      "name": "Smart Pool Pump Control",
+      "namespace": "Craig.Romei",
+      "location": "https://raw.githubusercontent.com/napalmcsr/Hubitat_Napalmcsr/master/Apps/PoolController/PoolController.src",
+      "required": true,
+      "oauth": false
+    }
+  ]
+}
