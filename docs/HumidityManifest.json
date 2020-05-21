@@ -1,0 +1,17 @@
+{
+  "packageName": "SmartHumidityFan",
+  "author": "napalmcsr",
+  "version": "1.0",
+  "minimumHEVersion": "2.1.9",
+  "dateReleased": "2020-05-20",
+  "apps": [
+    {
+      "id": "f05a8a0d-f2ea-4c35-96d1-81599f9deadd",
+      "name": "Smart Humidity Fan",
+      "namespace": "Craig.Romei",
+      "location": "https://raw.githubusercontent.com/napalmcsr/Hubitat_Napalmcsr/master/Apps/SmartHumidityFan/SmartHumidityFan.src",
+      "required": true,
+      "oauth": false
+    }
+  ]
+}
