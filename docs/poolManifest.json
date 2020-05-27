@@ -1,12 +1,12 @@
 {
-  "packageName": "PoolController",
+  "packageName": "SeasonalPoolController",
   "author": "napalmcsr",
-  "version": "1.0",
+  "version": "1.1",
   "minimumHEVersion": "2.1.9",
-  "dateReleased": "2020-05-20",
+  "dateReleased": "2020-05-27",
   "apps": [
     {
-      "id": "2c22b27a-7afc-430e-97dd-ca0eb7f8a598",
+      "id": "ff80d35d-5520-48be-99c7-5968db2a688f",
       "name": "Smart Pool Pump Control",
       "namespace": "Craig.Romei",
       "location": "https://raw.githubusercontent.com/napalmcsr/Hubitat_Napalmcsr/master/Apps/PoolController/PoolController.src",
