@@ -9,7 +9,7 @@
       "description": "Controls Keen Vents using temp sensors"
     },
     {
-      "name": "Pool Controller",
+      "name": "Seasonal Pool Controller",
       "category": "Control",
       "location": "https://raw.githubusercontent.com/napalmcsr/Hubitat_Napalmcsr/master/docs/poolManifest.json",
       "description": "Controls a pool pump based on calendar Month"
