@@ -1,0 +1,229 @@
+/* Copyright 2020 csromei
+*
+*   Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*   You may obtain a copy of the License at
+*
+*       http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*   distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*  See the License for the specific language governing permissions and
+*  limitations under the License.
+*  
+*/
+definition(
+    name: "Seasonal Pool Pump Control",
+    namespace: "Craig.Romei",
+    author: "Craig Romei",
+    description: "Control a pool Pump based on the Seasons.",
+    category: "Convenience",
+    iconUrl: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/poolpump.jpg",
+    iconX2Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/poolpump.jpg",
+    iconX3Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/poolpump.jpg"
+)
+preferences {
+    page(name: "pageConfig") // Doing it this way elimiates the default app name/mode options.
+}
+def pageConfig()
+{
+	dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0) {
+	section("Pool Pump Switch")
+    {
+    	paragraph "The Pool Pump Switch"
+		input "PoolSwitch", "capability.switch", title: "Pool Switch:", required: true
+    }
+    section("Pool Run Limits")
+    {
+		input "HotHours", "number", title: "Number of Hours to run in Hot Months:", required: true, defaultValue:  8
+		input "ColdHours", "number", title: "Number of Hours to run in Cold Months:", required: true, defaultValue:  8
+        	input "TimeToRun", "time", title: "Time to execute every day", required: true              
+			input(
+				name: "HEMISPHERE"
+				,title: "What Hemisphere do you live in?" 
+				,multiple: false
+				,required: true
+				,type: "enum"
+				,options: getHemisphere()
+				,submitOnChange : false
+				,defaultValue : "0"
+				)  
+	}
+    section("Manual Activation")
+    {
+    	paragraph "When should the pump turn off when turned on manually?"
+        input "ManualControlMode", "bool", title: "Off After Manual-On?", required: true, defaultValue: true
+        paragraph "How many minutes until the pump is auto-turned-off?"
+        input "ManualOffMinutes", "number", title: "Auto Turn Off Time (minutes)?", required: false, defaultValue: 60
+        paragraph "Should the pump run until it was scheulded to finish if it is before that time?"
+        input "GotoPreviousFinish", "bool", title: "Goto Previous Finish time?", required: true, defaultValue: false
+        
+		}
+		section("Logging")
+		{                       
+			input(
+				name: "logLevel"
+				,title: "IDE logging level" 
+				,multiple: false
+				,required: true
+				,type: "enum"
+				,options: getLogLevels()
+				,submitOnChange : false
+				,defaultValue : "2"
+				)  
+		}
+	}
+}
+def installed()
+{
+    initialize()
+}
+
+def updated()
+{
+	unsubscribe()
+    initialize()
+}
+
+def initialize()
+{
+    infolog "${TimeToRun}"
+	state.AutomaticallyTurnedOn =false
+    subscribe(PoolSwitch, "switch", PoolSwitchHandler)
+    schedule(TimeToRun, Timehandler)
+}
+
+def Timehandler()
+{
+	float RunTime
+    def now = new Date()
+    infolog "Time to Start The Pool!"
+    debuglog "ColdHours: ${ColdHours} "
+    debuglog "HotHours: ${HotHours} "
+    state.AutomaticallyTurnedOn = true
+    PoolSwitch.on()
+//    Today_Month = now.getMonth()
+    def Today_Month = now.month + 1
+    debuglog "Today's Month before hemisphere: ${Today_Month}"
+    if (HEMISPHERE.toInteger()==1) {
+        Today_Month = Today_Month+6
+        if (Today_Month>12) Today_Month=Today_Month-12
+    }
+    
+    debuglog "Today's Month after Hemisphere: ${Today_Month}"
+    switch (Today_Month){
+    	case[12,1,2]:
+        	RunTime = ColdHours
+        break
+    	case[3,11]:
+        	RunTime = ColdHours + (HotHours - ColdHours) / 4
+        break
+    	case[4,10]:
+        	RunTime = ColdHours + (HotHours - ColdHours) / 2
+        break
+    	case[5,9]:
+        	RunTime = ColdHours + (HotHours - ColdHours) * 3 / 4
+        break
+    	case[6,7,8]:
+        	RunTime = HotHours
+        break
+    }
+    infolog "RunTime: ${RunTime}"
+    def TimeToRun = 60*60*RunTime.toInteger()
+     
+    use (groovy.time.TimeCategory) {  
+        futureTime = now + TimeToRun.seconds
+    }
+    debuglog "TimeToRun: ${TimeToRun}"
+    debuglog "future: ${futureTime}"
+    state.FinishTime = futureTime.toString()
+   // sendNotificationEvent("Running the Pool Pump for ${RunTime} hours.")
+    runIn(TimeToRun.toInteger(), TurnOffPoolSwitch)
+}
+
+def PoolSwitchHandler(evt)
+{
+    switch(evt.value)
+    {
+    	case "on":
+        	debuglog "Pump turned on"
+                if(!state.AutomaticallyTurnedOn && ManualControlMode)
+                {
+        		    debuglog "Pump turned on physically"
+                    def now = new Date()
+                    def previousFinish = Date.parse("E MMM dd H:m:s z yyyy", state.FinishTime)
+                        
+                     
+                    if (now.before(previousFinish) && GotoPreviousFinish)
+                    {
+                        debuglog "turning on pump will finish at ${state.FinishTime}"
+                        runOnce(previousFinish, TurnOffPoolSwitch)
+                    }        
+                    else if(ManualOffMinutes == 0)
+                    {
+        				debuglog "Pump Off"
+                        PoolSwitch.off()
+                    }
+                    else
+                    {
+        				debuglog "Automatically turn off pool later"
+    					//sendNotificationEvent("Turning off the Pool Pump later due to a manual turn on")
+                        runIn(60 * ManualOffMinutes, TurnOffPoolSwitch)
+                    }
+			    state.AutomaticallyTurnedOn = false
+            }
+	        break
+        case "off":
+        	infolog "Pump turned off"
+            unschedule(TurnOffPoolSwitch)
+		    state.AutomaticallyTurnedOn = false
+        	break
+    }
+}
+
+
+
+def TurnOffPoolSwitch()
+{
+    infolog "Auto Pump Off called"
+    if(PoolSwitch.currentValue("switch") == "on")
+    {
+        debuglog "Pump Off"
+        PoolSwitch.off()
+		state.AutomaticallyTurnedOn = false
+    //	sendNotificationEvent("Turning off the Pool Pump")
+    }
+}
+
+
+def debuglog(statement)
+{   
+	def logL = 0
+    if (logLevel) logL = logLevel.toInteger()
+    if (logL == 0) {return}//bail
+    else if (logL >= 2)
+	{
+		log.debug(statement)
+	}
+}
+def infolog(statement)
+{       
+	def logL = 0
+    if (logLevel) logL = logLevel.toInteger()
+    if (logL == 0) {return}//bail
+    else if (logL >= 1)
+	{
+		log.info(statement)
+	}
+}
+def getLogLevels(){
+    return [["0":"None"],["1":"Running"],["2":"NeedHelp"]]
+}
+def getHemisphere(){
+    return [["0":"Northern"],["1":"Southern"]]
+}
+def setVersion(){
+                state.version = "1.1.1" // Version number of this app
+                state.InternalName = "SeasonalPoolController"   // this is the name used in the JSON file for this app
+				}
