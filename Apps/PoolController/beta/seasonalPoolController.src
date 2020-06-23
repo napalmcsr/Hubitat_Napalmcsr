@@ -90,6 +90,10 @@ def initialize()
 {
     infolog "${TimeToRun}"
 	state.AutomaticallyTurnedOn =false
+    if (not(state.FinishTime))
+    {
+        state.FinishTime = new Date().toString()
+    }
     subscribe(PoolSwitch, "switch", PoolSwitchHandler)
     schedule(TimeToRun, Timehandler)
 }
