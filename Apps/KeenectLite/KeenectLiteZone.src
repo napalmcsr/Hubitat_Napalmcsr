@@ -7,6 +7,7 @@
  *  V1.0.6 Added local virtual thermostat control
  *  V1.0.7 Added treat idle as Fan Only
  *  V2.0.0 Added Digital Control and dashboard tile support
+ *  V2.1.0 Added auto refresh of temp sensor
  *
  *  Copyright 2019 Craig Romei
  *
@@ -20,7 +21,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  */
- 
+
+
 definition(
     name: "KeenectLiteZone",
     namespace: "Craig.Romei",
@@ -30,8 +32,9 @@ definition(
     parent: "Craig.Romei:KeenectLiteMaster",
     iconUrl: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/keenect/clipart-thermometer-thermometer-clipart-free-6-thermometer-clip-art-clipartix-free-clipart.jpg",
     iconX2Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/keenect/clipart-thermometer-thermometer-clipart-free-6-thermometer-clip-art-clipartix-free-clipart.jpg",
-	iconX3Url	: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/keenect/clipart-thermometer-thermometer-clipart-free-6-thermometer-clip-art-clipartix-free-clipart.jpg"
-   
+	iconX3Url	: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/keenect/clipart-thermometer-thermometer-clipart-free-6-thermometer-clip-art-clipartix-free-clipart.jpg",
+   	importUrl: "https://raw.githubusercontent.com/napalmcsr/Hubitat_Napalmcsr/master/Apps/KeenectLite/KeenectLiteZone.src"
+
 )
 
 preferences {
@@ -39,47 +42,40 @@ preferences {
 }
 def pageConfig()
 {
-	dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0) {
-    section("Versioning")
+	dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0) 
     {
-        display()
-    }
-	section("Pause")
-	{
-		input "PauseZone", "bool", title: "Pause KeenectLite from controlling this zone.", required: true, defaultValue: false, submitOnChange: true
-	}
-	section("Devices")
-	{
-		input "tStat", "capability.thermostat", title: "Zone Virtual Thermostat for setting zone setpoints", required: true
-		input name : "UseTstatMode", title : "Use Thermostat Mode to control vents", multiple : false ,required : true, type	: "bool" ,submitOnChange : true, defaultValue : false
-		input "vents", "capability.switchLevel", title: "Zone Vent",multiple: true, required: true
-		input "tempSensor", "capability.temperatureMeasurement", title: "Zone Temperature Sensor", multiple: false, required: true
-		input "DashboardTileUpdate", "capability.sensor", title: "Display Tile(If wanted):", required: false
-	}
-	section("Settings")
-	{
-		input "VentControlType", "enum", title: "How reactive do you want the vents? Aggressive keeps them open wider closer to target, Slow starts closing them further away from target. Binary is full open or close, based on limits.", submitOnChange: true,required : true,defaultValue	: "Normal", options: ["Aggressive", "Normal", "Slow","Binary"]
-		input name: "heatMinVo", title : "Heating minimum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
-		input name: "heatMaxVo", title : "Heating maximum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "100"
-		input name: "coldMinVo", title : "Cooling minimum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
-		input name: "coldMaxVo", title : "Cooling maximum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "100"
-		input name: "FanVo", title : "Fan mode opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
-		input name : "TreatIdleAsFan", title : "Treat Idle as Fan Only?", multiple : false ,required : true, type	: "bool" ,submitOnChange : true, defaultValue : false
-	}
-	section("Logging")
-	{input(
-		name : "logLevel"
-		,title : "IDE logging level" 
-		,multiple : false
-		,required : true
-		,type : "enum"
-		,options  : getLogLevels()
-		,submitOnChange : false
-		,defaultValue : "0"
-			)  
-		}
-		
-		 section() {label title: "Enter a name for this automation", required: false}
+	    section("Pause")
+	    {
+		    input "PauseZone", "bool", title: "Pause KeenectLite from controlling this zone.", required: true, defaultValue: false, submitOnChange: true
+	    }
+	    section("Devices")
+	    {
+		    input "tStat", "capability.thermostat", title: "Zone Virtual Thermostat for setting zone setpoints", required: true
+		    input name : "UseTstatMode", title : "Use Thermostat Mode to control vents", multiple : false ,required : true, type	: "bool" ,submitOnChange : true, defaultValue : false
+		    input "vents", "capability.switchLevel", title: "Zone Vent",multiple: true, required: true
+		    input "tempSensor", "capability.temperatureMeasurement", title: "Zone Temperature Sensor", multiple: false, required: true
+            input name: "tempSensorRefreshTime", title : "How often to refresh temp sensor when main system is running in minutes. Leave empty for no refresh." ,multiple	: false ,required : false ,type : "number" ,defaultValue	: ""
+		    input "DashboardTileUpdate", "capability.sensor", title: "Display Tile(If wanted):", required: false
+	    }
+	    section("Settings")
+	    {
+		    input "VentControlType", "enum", title: "How reactive do you want the vents? Aggressive keeps them open wider closer to target, Slow starts closing them further away from target. Binary is full open or close, based on limits.", submitOnChange: true,required : true,defaultValue	: "Normal", options: ["Aggressive", "Normal", "Slow","Binary"]
+            input "reverseActing", "bool", title: "Reverse acting vent?", required: true, defaultValue: false, submitOnChange: true		
+		    input name: "heatMinVo", title : "Heating minimum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
+		    input name: "heatMaxVo", title : "Heating maximum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "100"
+		    input name: "coldMinVo", title : "Cooling minimum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
+		    input name: "coldMaxVo", title : "Cooling maximum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "100"
+		    input name: "FanVo", title : "Fan mode opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
+		    input name : "TreatIdleAsFan", title : "Treat Idle as Fan Only?", multiple : false ,required : true, type	: "bool" ,submitOnChange : true, defaultValue : false
+	    }
+	    section("Logging")
+	    {
+		        input "logLevel","enum",title: "IDE logging level",required: true,options: getLogLevels(),defaultValue : "2"
+	    }
+        section() 
+        {
+            label title: "Enter a name for this automation", required: false
+        }
 	}
 }
 def installed()
@@ -139,6 +135,33 @@ def MainTstatStateChange(mainTStatState) {
 	infolog "Running MainTstatStateChange"
 	state.mainTstatState = mainTStatState
 	zoneEvaluate()
+    if (((state.mainTstatState=="HEATING")||(state.mainTstatState=="COOLING"))&&(tempSensorRefreshTime!="")){
+        if (tempSensorRefreshTime){
+            TempSensorPolling(true)
+        }
+    }
+    else{
+        TempSensorPolling(false)
+    }
+}
+
+def TempSensorPolling(enable)
+{
+	if (enable){
+        debuglog "Start refreshing temp sensor"
+		runIn(180,refreshTempSensor)
+	}
+	else{
+        debuglog "Stop Refreshing Temp Sensor"
+		unschedule(refreshTempSensor)
+	}
+}
+
+def refreshTempSensor()
+{
+    debuglog "Refreshing Temp Sensor"
+	tempSensor.refresh()
+	runIn(tempSensorRefreshTime*60, refreshTempSensor)
 }
 
 def setTstatHSP(evt) {
@@ -208,6 +231,7 @@ def zoneEvaluate(){
 		setVents(VentParams.ventOpening)
 	}
     sendDisplayTile()
+    sendStatstoParent()
 	infolog "zoneEvaluate: --EXIT"
 }
 
@@ -229,6 +253,9 @@ def CheckTstatMode(VentParams)
 def CalculteVent(Map VentParams){
 	
 	VentParams.ventOpening = Math.round(VentParams.tempDelta*VentParams.ventSlope.toInteger()+VentParams.ventIntercept.toInteger())
+    if(reverseActing){
+        VentParams.ventOpening = 100-VentParams.ventOpening
+    }
 	debuglog "CalculteVent- VentParams.ventOpening before limit checks: ${VentParams.ventOpening}"
 	if (VentParams.ventOpening>VentParams.MaxVo.toInteger()){
 		debuglog "CalculteVent- VentParams.ventOpening greater than Max"
@@ -384,9 +411,17 @@ def sendDisplayTile()
         debuglog "zoneEvaluate: ${reportString}"
         DashboardTileUpdate.SetKeenectData(reportString)
     }
+
 }
 
-
+def sendStatstoParent(){
+	Map ChildMap = [:]
+    ChildMap.title = app.label
+    ChildMap.setpoint = state.activeSetPoint
+    ChildMap.currentTemperature = state.currentTemperature
+    ChildMap.vent = state.zoneVoLocal
+    parent.SetChildStats(ChildMap)
+}
 
 
 
@@ -415,67 +450,8 @@ def infolog(statement)
 def getLogLevels(){
     return [["0":"None"],["1":"Running"],["2":"NeedHelp"]]
 }
-def version(){
-        unschedule()
-        schedule("0 0 9 ? * FRI *", updateCheck) // Cron schedule - How often to perform the update check - (This example is 9am every Friday)
-        updateCheck()  
-}
-
-def display(){
-	updateCheck()
-	debuglog "state.Status: ${state.Status}"
-        if(state.Status){
-        section{paragraph "Version: $state.version -  $state.Copyright"}
-        
-        if(state.Status != "Current"){
-        section{ 
-        paragraph "$state.Status"
-        paragraph "$state.UpdateInfo"
-    }
-    }
-}
-}
-
-
-def updateCheck(){
-    setVersion()
-        def paramsUD = [uri: "https://napalmcsr.github.io/Hubitat_Napalmcsr/versions.json"]   // This is the URI & path to your hosted JSON file
-       try {
-        httpGet(paramsUD) { respUD ->
-//  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
-                def copyrightRead = (respUD.data.copyright)
-                state.Copyright = copyrightRead
-            def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
-            def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
-                def currentVer = state.version.replace(".", "")
-                state.UpdateInfo = (respUD.data.versions.UpdateInfo.Application.(state.InternalName))
-                state.author = (respUD.data.author)
-           
-                if(newVer == "NLS"){
-            state.Status = "<b>** This app is no longer supported by $state.author  **</b> (But you may continue to use it)"       
-            log.warn "** This app is no longer supported by $state.author **"      
-                }           
-                else if(currentVer < newVer){
-        state.Status = "<b>New Version Available (Version: $newVerRaw)</b>"
-        log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
-        log.warn "** $state.UpdateInfo **"
-                } 
-                else{ 
-                state.Status = "Current"
-                log.info "You are using the current version of this app"
-                }
-                                       }
-        } 
-        catch (e) {
-            state.Status = "Error"
-        log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
-                }
-                
-    
-        //     
-}
 
 def setVersion(){
-                state.version = "2.0.0" // Version number of this app
+                state.version = "2.3.0" // Version number of this app
                 state.InternalName = "KeenectLiteZone"   // this is the name used in the JSON file for this app
 				}
