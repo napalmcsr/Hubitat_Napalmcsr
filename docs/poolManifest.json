@@ -1,9 +1,10 @@
 {
   "packageName": "SeasonalPoolController",
   "author": "napalmcsr",
-  "version": "1.1",
+  "version": "1.2",
   "minimumHEVersion": "2.1.9",
-  "dateReleased": "2020-05-27",
+  "dateReleased": "2020-07-16",
+	"releaseNotes": "Added optional return to schedule when using manual switches and removed old updating system to support HPM",
   "apps": [
     {
       "id": "ff80d35d-5520-48be-99c7-5968db2a688f",
