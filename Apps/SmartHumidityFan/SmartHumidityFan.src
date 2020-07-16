@@ -1,18 +1,13 @@
-
-/* Copyright 2020 csromei
+/**
+*  Smart Humidity Fan
 *
-*   Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*   You may obtain a copy of the License at
+*  Turns on a fan when you start taking a shower... turns it back off when you are done.
+*    -Uses humidity change rate for rapid response
+*    -Timeout option when manaully controled (for stench mitigation)
 *
-*       http://www.apache.org/licenses/LICENSE-2.0
+*  Copyright 2018 Craig Romei
+*  GNU General Public License v2 (https://www.gnu.org/licenses/gpl-2.0.txt)
 *
-*  Unless required by applicable law or agreed to in writing, software
-*   distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-*  
 */
 
 definition(
@@ -32,10 +27,6 @@ preferences {
 def pageConfig()
 {
 	dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0) {
-		section("Versioning")
-		{
-			display()
-		}
 			section("Bathroom Devices")
 		{
 			paragraph "NOTE: The humidity sensor you select will need to report about 5 min or less."
@@ -51,6 +42,7 @@ def pageConfig()
 		{
 			input "HumidityDropTimeout", "number", title: "How long after the humidity starts to drop should the fan turn off (minutes):", required: true, defaultValue:  10
 			input "HumidityDropLimit", "number", title: "What percentage above the starting humidity before triggering the turn off delay:", required: true, defaultValue:  25
+            input "MaxRunTime", "number", title: "Maximum time(minutes) for Fan to run when automatically turned on:", required: false, defaultValue: 120
 		}
 		section("Manual Activation")
 		{
@@ -65,17 +57,8 @@ def pageConfig()
 			input "modes", "mode", title: "select a mode(s)", multiple: true
 		}
 		section("Logging")
-		{                       
-			input(
-				name: "logLevel"
-				,title: "IDE logging level" 
-				,multiple: false
-				,required: true
-				,type: "enum"
-				,options: getLogLevels()
-				,submitOnChange : false
-				,defaultValue : "10"
-				)  
+		{                    
+		    input "logLevel","enum",title: "IDE logging level",required: true,options: getLogLevels(),defaultValue : "2"
 		}
         
 		 section() {label title: "Enter a name for this automation", required: false}
@@ -102,7 +85,6 @@ def initialize()
     subscribe(HumiditySensor, "humidity", HumidityHandler)
     subscribe(FanSwitch, "switch", FanSwitchHandler)
 	subscribe(location, "mode", modeChangeHandler)
-    version()
 }
 
 def modeChangeHandler(evt)
@@ -175,6 +157,7 @@ def HumidityHandler(evt)
 	debuglog "HumidityHandler: state.HighestHumidity = ${state.HighestHumidity}"
 	debuglog "HumidityHandler: state.HumidityChangeRate = ${state.HumidityChangeRate.round(2)}"
 	debuglog "HumidityHandler: state.targetHumidity = ${state.targetHumidity}"
+	debuglog "HumidityHandler: FanSwitch.current state = ${FanSwitch.currentValue("switch")}"
 	//if the humidity is high (or rising fast) and the fan is off, kick on the fan
 	if(allModes)
 	{
@@ -183,13 +166,18 @@ def HumidityHandler(evt)
 			modeStop = true
 		}
 	}
+	debuglog "HumidityHandler: modeStop.current state = ${modeStop}"
     if (((state.HumidityChangeRate>HumidityIncreaseRate)||state.OverThreshold) && (FanSwitch.currentValue("switch") == "off")&&!modeStop)
     {
 		state.AutomaticallyTurnedOn = true
 		state.TurnOffLaterStarted = false
-		state.AutomaticallyTurnedOnAt = new Date().format("yyyy-MM-dd HH:mm")
 		infolog "HumidityHandler:Turn On Fan due to humidity increase"
 		FanSwitch.on()
+        if(MaxRunTime)
+        {
+            debuglog "Maximum run time is ${MaxRunTime} minutes"
+			runIn(60 * MaxRunTime.toInteger(), TurnOffFanSwitchMaxTime)
+        }
         state.StartingHumidity = state.lastHumidity
         state.HighestHumidity = state.currentHumidity    
 		debuglog "HumidityHandler: new state.StartingHumidity = ${state.StartingHumidity}"
@@ -244,8 +232,15 @@ def FanSwitchHandler(evt)
 			debuglog "FanSwitchHandler::Switch turned off"
 			state.AutomaticallyTurnedOn = false
 			state.TurnOffLaterStarted = false
+            unschedule(TurnOffFanSwitchMaxTime)
 			break
     }
+}
+
+def TurnOffFanSwitchMaxTime()
+{
+    debuglog "TurnOffFanSwitchCheckHumidity: Function Start"
+	TurnOffFanSwitch()
 }
 
 def TurnOffFanSwitchCheckHumidity()
@@ -258,7 +253,6 @@ def TurnOffFanSwitchCheckHumidity()
         {
 			debuglog "TurnOffFanSwitchCheckHumidity: Didn't turn off fan because humidity rate is ${state.HumidityChangeRate}"
 			state.AutomaticallyTurnedOn = true
-			state.AutomaticallyTurnedOnAt = now()
 			state.TurnOffLaterStarted = false
 		}
 		else
@@ -317,61 +311,10 @@ def infolog(statement)
 def getLogLevels(){
     return [["0":"None"],["1":"Running"],["2":"NeedHelp"]]
 }
-def version(){
-	unschedule()
-	schedule("0 0 9 ? * FRI *", updateCheck) // Cron schedule - How often to perform the update check - (This example is 9am every Friday)
-	updateCheck()  
-}
 
-def display(){
-	if(state.Status){
-		section{paragraph "Version: $state.version -  $state.Copyright"}
-		if(state.Status != "Current"){
-			section{ 
-			paragraph "$state.Status"
-			paragraph "$state.UpdateInfo"
-			}
-		}
-	}
-}
-
-
-def updateCheck(){
-    setVersion()
-	def paramsUD = [uri: "https://napalmcsr.github.io/Hubitat_Napalmcsr/versions.json"]   // This is the URI & path to your hosted JSON file
-	try {
-		httpGet(paramsUD) { respUD ->
-		//  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
-			def copyrightRead = (respUD.data.copyright)
-			state.Copyright = copyrightRead
-			def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
-			def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
-			def currentVer = state.version.replace(".", "")
-			state.UpdateInfo = (respUD.data.versions.UpdateInfo.Application.(state.InternalName))
-			state.author = (respUD.data.author)
-				   
-			if(newVer == "NLS"){
-				state.Status = "<b>** This app is no longer supported by $state.author  **</b> (But you may continue to use it)"       
-				log.warn "** This app is no longer supported by $state.author **"      
-			}           
-			else if(currentVer < newVer){
-				state.Status = "<b>New Version Available (Version: $newVerRaw)</b>"
-				log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
-				log.warn "** $state.UpdateInfo **"
-			} 
-			else{ 
-				state.Status = "Current"
-				log.info "You are using the current version of this app"
-			}
-		}
-	} 
-	catch (e) {
-		state.Status = "Error"
-        log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
-	} 
-}
 
 def setVersion(){
-	state.version = "2.0.3" // Version number of this app
+	state.version = "2.0.6" // Version number of this app
 	state.InternalName = "SmartHumidityFan"   // this is the name used in the JSON file for this app
 }
+
