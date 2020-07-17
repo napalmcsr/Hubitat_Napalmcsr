@@ -15,7 +15,7 @@
     {
       "name": "Seasonal Pool Controller",
       "category": "Control",
-      "tags": "Pools & Spas",
+      "tags": ["Pools & Spas"],
       "location": "https://raw.githubusercontent.com/napalmcsr/Hubitat_Napalmcsr/master/docs/poolManifest.json",
       "description": "Controls a pool pump based on calendar Month"
     },
@@ -32,7 +32,7 @@
     {
       "name": "Thermostat Tracker",
       "category": "Convenience",
-      "tags": "Climate Control",
+      "tags": ["Climate Control"],
       "location": "https://raw.githubusercontent.com/napalmcsr/Hubitat_Napalmcsr/master/docs/ThermostatTrackerManifest.json",
       "description": "Tracks Thermostat usage by Thermostat State"
     }
