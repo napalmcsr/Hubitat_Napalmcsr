@@ -60,7 +60,6 @@ def updated() {initialize()}
 def initialize() {
 	infolog "Initializing"
     unsubscribe()
-	version()
     subscribe(tStat, "thermostatOperatingState", OperatingStateHandler)    
 	debuglog "Getting Thermostat running State" 
 	state.mainState = state.mainState ?: getMainTstatState()
@@ -144,6 +143,6 @@ def getLogLevels(){
 
 
 def setVersion(){
-                state.version = "1.0.2" // Version number of this app
+                state.version = "1.0.3" // Version number of this app
                 state.InternalName = "KeenectLiteMaster"   // this is the name used in the JSON file for this app
 				}
