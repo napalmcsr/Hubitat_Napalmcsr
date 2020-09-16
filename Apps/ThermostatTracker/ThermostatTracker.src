@@ -98,7 +98,6 @@ def initialize()
 	infolog "Initializing"
     def now = new Date().getTime().intdiv(1000)
 	unsubscribe()
-	version()   
 	debuglog "Getting Thermostat running State" 
 	state.mainTstatState = state.mainTstatState ?: getMainTstatState()
 	state.stateChangeTime = state.stateChangeTime ?: now
