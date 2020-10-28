@@ -175,7 +175,7 @@ def HumidityHandler(evt)
 		state.AutomaticallyTurnedOn = true
 		state.TurnOffLaterStarted = false
 		infolog "HumidityHandler:Turn On Fan due to humidity increase"
-        if ((FanOnDelay>0)||(FanOnDelay==""))
+        if ((FanOnDelay>0)||(FanOnDelay!=null))
         {
             runin(60*FanOnDelay.toInteger(), TurnOnFan())
         }
