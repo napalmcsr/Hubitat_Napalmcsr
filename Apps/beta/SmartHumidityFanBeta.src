@@ -177,7 +177,7 @@ def HumidityHandler(evt)
 		infolog "HumidityHandler:Turn On Fan due to humidity increase"
         if ((FanOnDelay>0)||(FanOnDelay!=null))
         {
-            runin(60*FanOnDelay.toInteger(), TurnOnFan())
+            runIn(60*FanOnDelay.toInteger(), TurnOnFan())
         }
         else
         {
