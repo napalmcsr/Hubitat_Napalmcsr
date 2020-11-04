@@ -286,6 +286,7 @@ def TurnOffFanSwitch()
 
 def TurnOnFan()
 {
+	debuglog "TurnOnFan: Turning the Fan on"
     FanSwitch.on()
 }
                   
