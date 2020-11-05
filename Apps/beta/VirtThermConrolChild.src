@@ -12,11 +12,11 @@
 
 definition(
     name: "Virtual Thermostat Control Child",
-    namespace: "napalmcsr",
+    namespace: "Craig.Romei",
     author: "Craig Romei",
-    description: "Update a Virtual Thermostats temperature using a temperature sensor",
+    description: "Run switched based off a virtual thermostat that is updated by a temperature sensor",
     category: "Convenience",
-    parent: "napalmcsr:Virtual Thermostat Control Parent",
+    parent: "Craig.Romei:Virtual Thermostat Control Parent",
     iconUrl: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg",
     iconX2Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg",
     iconX3Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg"
@@ -26,11 +26,8 @@ preferences {
 }
 def pageConfig()
 {
-	dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0) {
-		section("Versioning")
-		{
-			display()
-		}
+	dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0) 
+    {
 		section("Sensor, Thermostat, and Switches")
 		{
 			input name : "tStat", type : "capability.thermostat", title: "Virtual thermostat control", required: true
@@ -44,21 +41,14 @@ def pageConfig()
 			input "refreshInt", "number", title: "Number of Minutes between temp sensor refreshes:", required: true, defaultValue:  5
 			input "DeadmanTime", "number", title: "Maximun number of minutes between temp sensor updates until heat and ccol are disabled:", required: false, defaultValue:  11
 		}
-
 		section("Logging")
-		{                       
-			input(
-			name                      : "logLevel"
-			,title                       : "IDE logging level" 
-			,multiple        : false
-			,required                : true
-			,type                       : "enum"
-			,options              : getLogLevels()
-			,submitOnChange : false
-			,defaultValue : "0"
-			)  
+		{             
+		    input "logLevel","enum",title: "IDE logging level",required: true,options: getLogLevels(),defaultValue : "2"
 		}
-		section() {label title: "Enter a name for this automation", required: false}
+		section() 
+        {
+            label title: "Enter a name for this automation", required: false
+        }
 	}
 }
 
@@ -77,8 +67,8 @@ def updated()
 def initialize()
 {
     infolog "Initializing"
-	Unschedule
-	unsubscribe
+	unschedule()
+	unsubscribe()
 	subscribe(TemperatureSensor, "temperature", TemperatureHandler)
 	subscribe(tStat, "thermostatOperatingState", TStatStateHandler)
 	if (enableSwitch!=""){
@@ -143,6 +133,7 @@ def enableHandler(evt){
 		state.enable = false
 		turnOffAll()
 		TempSensorPolling(false)
+        unschedule()
 	}
 	
 }
@@ -156,11 +147,17 @@ def DeadmanHandler()
         if (state.enable)
         {
             CheckDisableCheckThermostatControl()
+            runIn(60 * DeadmanTime-30, DeadmanCheck)
+            runIn(60 * DeadmanTime, DeadmanOff)
         }
-        runIn(60 * DeadmanTime, DeadmanOff)
 //	}
 }
 
+def DeadmanCheck()
+{
+        debuglog "Deadman Check"
+		refreshTempSensor()
+}
 def DeadmanOff()
 {
     state.deadman = false
@@ -230,17 +227,17 @@ def turnOffAll()
 
 def checkTempRange()
 {
-    outofRange=false
+    outofRange=true
     if (HeatSwitch){
-        if (state.HeatSP+1.25<state.lastTemp){
-            outofRange=true
-            debuglog "Heat OOR"
+        if (state.HeatSP+1.25>state.lastTemp){
+            outofRange=false
+            debuglog "Heat not OOR"
         }
     }
     if (CoolSwitch){
-        if (state.CoolSP-1.25>state.lastTemp){
-            outofRange=true
-            debuglog "Cool OOR"
+        if (state.CoolSP-1.25<state.lastTemp){
+            outofRange=false
+            debuglog "Cool not OOR"
         }
     }
     state.outofRange=outofRange
@@ -248,7 +245,9 @@ def checkTempRange()
         TempSensorPolling(false)
     }
     else{
-        runIn(60 * refreshInt, refreshTempSensor)
+        if (state.enable){
+            runIn(60 * refreshInt, refreshTempSensor)
+        }
     }
         
 }
@@ -293,65 +292,9 @@ def infolog(statement)
 def getLogLevels(){
     return [["0":"None"],["1":"Running"],["2":"NeedHelp"]]
 }
-def version(){
-        unschedule()
-        schedule("0 0 9 ? * FRI *", updateCheck) // Cron schedule - How often to perform the update check - (This example is 9am every Friday)
-        updateCheck()  
-}
 
-def display(){
-        if(state.Status){
-        section{paragraph "Version: $state.version -  $state.Copyright"}
-        
-        if(state.Status != "Current"){
-        section{ 
-        paragraph "$state.Status"
-        paragraph "$state.UpdateInfo"
-    }
-    }
-}
-}
-
-
-def updateCheck(){
-    setVersion()
-        def paramsUD = [uri: "https://napalmcsr.github.io/Hubitat_Napalmcsr/versions.json"]   // This is the URI & path to your hosted JSON file
-       try {
-        httpGet(paramsUD) { respUD ->
-//  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
-                def copyrightRead = (respUD.data.copyright)
-                state.Copyright = copyrightRead
-            def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
-            def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
-                def currentVer = state.version.replace(".", "")
-                state.UpdateInfo = (respUD.data.versions.UpdateInfo.Application.(state.InternalName))
-                state.author = (respUD.data.author)
-           
-                if(newVer == "NLS"){
-            state.Status = "<b>** This app is no longer supported by $state.author  **</b> (But you may continue to use it)"       
-            log.warn "** This app is no longer supported by $state.author **"      
-                }           
-                else if(currentVer < newVer){
-        state.Status = "<b>New Version Available (Version: $newVerRaw)</b>"
-        log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
-        log.warn "** $state.UpdateInfo **"
-                } 
-                else{ 
-                state.Status = "Current"
-                log.info "You are using the current version of this app"
-                }
-                                       }
-        } 
-        catch (e) {
-            state.Status = "Error"
-        log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
-                }
-                
-    
-        //     
-}
 
 def setVersion(){
-                state.version = "1.0.0" // Version number of this app
+                state.version = "1.0.1" // Version number of this app
                 state.InternalName = "ThermostatControlChild"   // this is the name used in the JSON file for this app
 }
