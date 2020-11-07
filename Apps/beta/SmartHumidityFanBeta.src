@@ -177,16 +177,12 @@ def HumidityHandler(evt)
 		infolog "HumidityHandler:Turn On Fan due to humidity increase"
         if ((FanOnDelay>0)&&(FanOnDelay!=null))
         {
+            debuglog "HumidityHandler:Turn On Fan later"
             runIn(60 * FanOnDelay.toInteger(), TurnOnFan)
         }
         else
         {
-		    FanSwitch.on()
-        }
-        if(MaxRunTime)
-        {
-            debuglog "Maximum run time is ${MaxRunTime} minutes"
-			runIn(60 * MaxRunTime.toInteger(), TurnOffFanSwitchMaxTime)
+		    TurnOnFan()
         }
         state.StartingHumidity = state.lastHumidity
         state.HighestHumidity = state.currentHumidity    
@@ -242,7 +238,7 @@ def FanSwitchHandler(evt)
 			debuglog "FanSwitchHandler::Switch turned off"
 			state.AutomaticallyTurnedOn = false
 			state.TurnOffLaterStarted = false
-            unschedule(TurnOffFanSwitchMaxTime)
+            unschedule()
 			break
     }
 }
@@ -288,6 +284,11 @@ def TurnOnFan()
 {
 	debuglog "TurnOnFan: Turning the Fan on"
     FanSwitch.on()
+    if(MaxRunTime)
+    {
+        debuglog "Maximum run time is ${MaxRunTime} minutes"
+        runIn(60 * MaxRunTime.toInteger(), TurnOffFanSwitchMaxTime)
+    }
 }
                   
 def CheckThreshold(evt)
