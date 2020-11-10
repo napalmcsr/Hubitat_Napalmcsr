@@ -37,6 +37,8 @@ def pageConfig()
 		{
 			input "HumidityIncreaseRate", "number", title: "Humidity Increase Rate :", required: true, defaultValue: 2
 			input "HumidityThreshold", "number", title: "Humidity Threshold (%):", required: false, defaultValue: 65
+			input "FanOnDelay", "number", title: "Delay turning fan on (Minutes):", required: false, defaultValue: 0
+            
 		}
 		section("Fan Deactivation")
 		{
@@ -73,6 +75,7 @@ def installed()
 def updated()
 {
 	unsubscribe()
+    unschedule()
 	initialize()
 }
 
@@ -167,16 +170,19 @@ def HumidityHandler(evt)
 		}
 	}
 	debuglog "HumidityHandler: modeStop.current state = ${modeStop}"
-    if (((state.HumidityChangeRate>HumidityIncreaseRate)||state.OverThreshold) && (FanSwitch.currentValue("switch") == "off")&&!modeStop)
+    if (((state.HumidityChangeRate>HumidityIncreaseRate)||state.OverThreshold) && (FanSwitch.currentValue("switch") == "off")&&!modeStop&&!state.AutomaticallyTurnedOn)
     {
 		state.AutomaticallyTurnedOn = true
 		state.TurnOffLaterStarted = false
 		infolog "HumidityHandler:Turn On Fan due to humidity increase"
-		FanSwitch.on()
-        if(MaxRunTime)
+        if ((FanOnDelay>0)&&(FanOnDelay!=null))
         {
-            debuglog "Maximum run time is ${MaxRunTime} minutes"
-			runIn(60 * MaxRunTime.toInteger(), TurnOffFanSwitchMaxTime)
+            debuglog "HumidityHandler:Turn On Fan later"
+            runIn(60 * FanOnDelay.toInteger(), TurnOnFan)
+        }
+        else
+        {
+		    TurnOnFan()
         }
         state.StartingHumidity = state.lastHumidity
         state.HighestHumidity = state.currentHumidity    
@@ -232,7 +238,7 @@ def FanSwitchHandler(evt)
 			debuglog "FanSwitchHandler::Switch turned off"
 			state.AutomaticallyTurnedOn = false
 			state.TurnOffLaterStarted = false
-            unschedule(TurnOffFanSwitchMaxTime)
+            unschedule()
 			break
     }
 }
@@ -274,6 +280,17 @@ def TurnOffFanSwitch()
     }
 }
 
+def TurnOnFan()
+{
+	debuglog "TurnOnFan: Turning the Fan on"
+    FanSwitch.on()
+    if(MaxRunTime)
+    {
+        debuglog "Maximum run time is ${MaxRunTime} minutes"
+        runIn(60 * MaxRunTime.toInteger(), TurnOffFanSwitchMaxTime)
+    }
+}
+                  
 def CheckThreshold(evt)
 {
 	double lastevtvalue = Double.parseDouble(evt.value.replace("%", ""))
@@ -314,7 +331,6 @@ def getLogLevels(){
 
 
 def setVersion(){
-	state.version = "2.0.6" // Version number of this app
+	state.version = "2.0.7" // Version number of this app
 	state.InternalName = "SmartHumidityFan"   // this is the name used in the JSON file for this app
 }
-
