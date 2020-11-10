@@ -1,10 +1,10 @@
 {
   "packageName": "SmartHumidityFan",
   "author": "napalmcsr",
-  "version": "1.1",
+  "version": "1.2",
   "minimumHEVersion": "2.1.9",
   "dateReleased": "2020-07-16",
-	"releaseNotes": "Added optional Max automatic run time and removed old updating system to support HPM",
+	"releaseNotes": "Added optional Fan turn on delay",
   "apps": [
     {
       "id": "f05a8a0d-f2ea-4c35-96d1-81599f9deadd",
