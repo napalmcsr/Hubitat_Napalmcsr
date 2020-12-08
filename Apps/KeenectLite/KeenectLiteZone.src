@@ -208,7 +208,13 @@ def zoneEvaluate(){
 			case "HEATING" :
 				VentParams = SetHeatVentParams()
 				break
+			case "PENDING HEAT" :
+				VentParams = SetHeatVentParams()
+				break
 			case "COOLING" :
+				VentParams = SetCoolVentParams()
+				break
+			case "PENDING COOL" :
 				VentParams = SetCoolVentParams()
 				break
 			case "FAN ONLY" :
@@ -309,8 +315,8 @@ def SetCoolVentParams(){
 
 def SetHeatVentParams(){
 	Map resultMap = [:]
-	debuglog "Setting vent Params Cool"
-    state.activeSetPoint = state.zoneHeatSetpoint
+	debuglog "Setting vent Params Heat"
+    	state.activeSetPoint = state.zoneHeatSetpoint
 	resultMap.tempDelta = state.zoneHeatSetpoint - state.currentTemperature
 	debuglog "SetHeatVentParams- resultMap.tempDelta: ${resultMap.tempDelta}"
 	debuglog "SetHeatVentParams- Vent Control Set to: ${VentControlType}"
