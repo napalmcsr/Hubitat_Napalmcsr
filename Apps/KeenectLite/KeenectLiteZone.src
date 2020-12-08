@@ -202,9 +202,10 @@ def ventHandler(evt) {
 def zoneEvaluate(){
 	infolog "Running zoneEvaluate"
 	Map VentParams = [:]
-    debuglog "zoneEvaluate: ventmode: ${state.mainTstatState}"
-	if ((TreatIdleAsFan&&(state.mainTstatState!="IDLE"))||(state.mainTstatState="COOLING")||(state.mainTstatState="HEATING")||(state.mainTstatState="FAN ONLY")){
-		switch (state.mainTstatState){
+    debuglog "${state.mainTstatState=="COOLING"}"
+	if ((TreatIdleAsFan&&(state.mainTstatState=="IDLE"))||(state.mainTstatState=="COOLING")||(state.mainTstatState=="HEATING")||(state.mainTstatState=="FAN ONLY")){
+		debuglog "here"
+        switch (state.mainTstatState){
 			case "HEATING" :
 				VentParams = SetHeatVentParams()
 				break
