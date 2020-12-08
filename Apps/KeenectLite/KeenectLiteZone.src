@@ -458,6 +458,6 @@ def getLogLevels(){
 }
 
 def setVersion(){
-                state.version = "2.3.0" // Version number of this app
+                state.version = "2.3.1" // Version number of this app
                 state.InternalName = "KeenectLiteZone"   // this is the name used in the JSON file for this app
 				}
