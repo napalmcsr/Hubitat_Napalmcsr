@@ -132,7 +132,7 @@ def setTstatMode(evt)
 }
 
 def MainTstatStateChange(mainTStatState) {
-	infolog "Running MainTstatStateChange"
+	infolog "Running MainTstatStateChange - Param = ${mainTStatState}"
 	state.mainTstatState = mainTStatState
 	zoneEvaluate()
     if (((state.mainTstatState=="HEATING")||(state.mainTstatState=="COOLING"))&&(tempSensorRefreshTime!="")){
