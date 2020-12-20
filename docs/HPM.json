@@ -20,13 +20,13 @@
       "description": "Controls a pool pump based on calendar Month"
     },
     {
-      "name": "Smart Humidity Fan",
+      "name": "Bathroom Humidity Fan",
       "category": "Control",
       "tags": [
         "Bathroom",
         "Temperature & Humidity"
       ],
-      "location": "https://raw.githubusercontent.com/napalmcsr/Hubitat_Napalmcsr/master/docs/HumidityManifest.json",
+      "location": "https://raw.githubusercontent.com/napalmcsr/Hubitat_Napalmcsr/master/docs/BathHumidityManifest.json",
       "description": "Controls a Bathroom Fan Based on humidity and/or time"
     },
     {
