@@ -1,0 +1,27 @@
+{
+  "packageName": "Bath",
+  "author": "Craig Romei",
+  "version": "1.0",
+  "minimumHEVersion": "2.2.4",
+  "dateReleased": "2020-12-20",
+  "apps": [
+    {
+      "id": "275290ba-2623-4fea-895a-a98b40304756",
+      "name": "Bathroom Humidity Fan",
+      "namespace": "Craig.Romei",
+      "location": "https://raw.githubusercontent.com/napalmcsr/Hubitat_Napalmcsr/master/Apps/BathroomHumidityFan/BathroomHumidityParent.src",
+      "required": true,
+      "oauth": false,
+      "primary": false
+    },
+    {
+      "id": "840e6495-8eea-4773-ae4a-bc90f7296dfe",
+      "name": "Bathroom Humidity Fan Child",
+      "namespace": "Craig.Romei",
+      "location": "https://raw.githubusercontent.com/napalmcsr/Hubitat_Napalmcsr/master/Apps/BathroomHumidityFan/BathroomHumidityChild.src",
+      "required": true,
+      "oauth": false,
+      "primary": false
+    }
+  ]
+}
