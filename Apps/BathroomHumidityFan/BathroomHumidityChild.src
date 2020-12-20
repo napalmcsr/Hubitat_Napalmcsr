@@ -4,6 +4,7 @@
 *  Turns on a fan when you start taking a shower... turns it back off when you are done.
 *    -Uses humidity change rate for rapid response
 *    -Timeout option when manaully controled (for stench mitigation)
+*    -Parent/Child by Lewis Heidrick
 *
 *  Copyright 2018 Craig Romei
 *  GNU General Public License v2 (https://www.gnu.org/licenses/gpl-2.0.txt)
@@ -408,6 +409,6 @@ def getLogLevels(){
 
 
 def setVersion(){
-	state.version = "2.0.7" // Version number of this app
-	state.InternalName = "SmartHumidityFan"   // this is the name used in the JSON file for this app
+	state.version = "1.0.0" // Version number of this app
+	state.InternalName = "BathroomHumidityFan"   // this is the name used in the JSON file for this app
 }
