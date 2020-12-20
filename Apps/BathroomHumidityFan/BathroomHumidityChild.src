@@ -1,10 +1,10 @@
 /**
-*  Smart Humidity Fan
+*  Bathroom Humidity Fan
 *
 *  Turns on a fan when you start taking a shower... turns it back off when you are done.
 *    -Uses humidity change rate for rapid response
 *    -Timeout option when manaully controled (for stench mitigation)
-*    -Parent/Child by Lewis Heidrick
+*    -Parent Child by Lewis Heidrick (Thanks!)
 *
 *  Copyright 2018 Craig Romei
 *  GNU General Public License v2 (https://www.gnu.org/licenses/gpl-2.0.txt)
@@ -23,48 +23,22 @@ definition(
     iconX3Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg")
 
 preferences {
-    page(name: "page1")
+    page name: "homePage", install: true, unistall: true
 }
 
-def appButtonHandler(btn) {
-  if (btn == "pause") {
-    state.paused = !state.paused
-    if (state.paused) {
-      unschedule()
-      unsubscribe()
-      updateLabel()
-    } else {
-      initialize()
-      updateLabel()
-    }
-  }
-}
-
-def page1() {
+def homePage() {
   section() {
   }
     state.isDebug = isDebug
-    state.displayName = "New"
-    dynamicPage(name: "page1", install: true, uninstall: true) {
-    if (state.paused) {
-      state.pauseButtonName = "Resume"
-      state.status = "Paused"
-      updateLabel()
-    } else {
-      state.pauseButtonName = "Pause"
-      updateLabel()
-    }
-    section("") {
-      input name: "pause", type: "button", title: state.pauseButtonName
-    }    
-    section("What do you want to name the new app") {
+ dynamicPage(name: "homePage") {
+    section() {
     label title: "Enter a name for this child app", required:false, submitOnChange:true
     }
-	   	section("Bathroom Devices")
+	   	section()
 		{
-			paragraph "NOTE: The humidity sensor you select will need to report about 5 min or less."
 			input "HumiditySensor", "capability.relativeHumidityMeasurement", title: "Humidity Sensor:", required: true
-			input "FanSwitch", "capability.switch", title: "Fan Location:", required: true
+			paragraph "NOTE: The humidity sensor you select will need to report about 5 min or less."
+            input "FanSwitch", "capability.switch", title: "Fan Switch:", required: true
 		}
 		section("Fan Activation")
 		{
@@ -81,17 +55,14 @@ def page1() {
 		}
 		section("Manual Activation")
 		{
-			paragraph "When should the fan turn off when turned on manually?"
 			input "ManualControlMode", "enum", title: "Off After Manual-On?", required: true, options: ["Manually", "By Humidity", "After Set Time"], defaultValue: "After Set Time"
-			paragraph "How many minutes until the fan is auto-turned-off?"
-			input "ManualOffMinutes", "number", title: "Auto Turn Off Time (minutes)?", required: false, defaultValue: 20
+			input "ManualOffMinutes", "number", title: "How many minutes until the fan is auto-turned-off?", required: false, defaultValue: 20
 		}
-		section("Disable Modes")
+		section()
 		{
-			paragraph "What modes do you not want this to run in?"
-			input "modes", "mode", title: "select a mode(s)", multiple: true
+			input "modes", "mode", title: "What modes do you not want this to run in?", multiple: true
 		}
-		section("Logging")
+		section()
 		{                    
 		    input "logLevel","enum",title: "IDE logging level",required: true,options: getLogLevels(),defaultValue : "2"
 		}      
@@ -102,7 +73,7 @@ def installed()
 {
 	initialize()
     state.paused = false
-    state.displayName = "New"
+    updateLabel()
 }
 
 def updated()
@@ -127,12 +98,11 @@ def initialize()
 }
 
 void updateLabel() {
-if (!state.displayName.contains(" <span"))                      {state.displayName}
 if (state.displayName.contains(" <span style=color:red>"))      {state.displayName(app.label.minus("<span style=color:red>(Paused)</span>" ))}
 if (state.displayName.contains(" <span style=color:green>"))    {state.displayName(app.label.minus("<span style=color:green>(On)</span>" ))}
 if (state.displayName.contains(" <span style=color:blue>"))     {state.displayName(app.label.minus("<span style=color:blue>(Off)</span>" ))}
-if (state.displayName.contains(" <span style=color:white>"))    {state.displayName(app.label.minus("<span style=color:white></span>" ))}
-
+if (!state.displayName.contains(" <span"))                      {state.displayName(app.label)}
+    
   if (state?.status || state?.paused) {
     def status = state?.status
     String label = "${state.displayName} <span style=color:"
@@ -142,12 +112,9 @@ if (state.displayName.contains(" <span style=color:white>"))    {state.displayNa
     } else if (state.status == "(On)") {
       status = "(On)"
       label += "green"
-    } else if (state.status == "(Off)") {
+    } else {
       status = "(Off)"
       label += "blue"
-    } else {
-      status = ""  
-      label += "white"
     }
     label += ">${status}</span>"
     app.updateLabel(label)
