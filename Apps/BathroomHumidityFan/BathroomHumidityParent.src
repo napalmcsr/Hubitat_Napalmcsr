@@ -1,0 +1,50 @@
+/*
+ *	Bathroom Humidity Fan (Parent)
+ *
+ *  I just wanted a parent/child version.
+ * 
+ * 
+ */
+
+definition(
+    name: "Bathroom Humidity Fan",
+    namespace: "Craig.Romei",
+    singleInstance: true,
+    author: "Craig Romei",
+    description: "Control a fan (switch) based on relative humidity. - Parent",
+    category: "Convenience",
+    iconUrl: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg",
+    iconX2Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg",
+    iconX3Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg"
+)
+
+preferences {
+	page(name: "mainPage")
+}
+
+def mainPage() {
+	return dynamicPage(name: "mainPage", title: "", install: true, uninstall: true) {
+        if(!state.ShfInstalled) {
+            section("Hit Done to install Bathroom Humidity Fan App") {
+        	}
+        }
+        else {
+        	section("Create a new Bathroom Humidity Fan Instance.") {
+            	app(name: "childApps", appName: "Bathroom Humidity Fan Child", namespace: "Craig.Romei", title: "New Bathroom Humidity Fan Instance", multiple: true)
+        	}
+    	}
+    }
+}
+
+def installed() {
+    state.ShfInstalled = true
+	initialize()
+}
+
+def updated() {
+	unsubscribe()
+	initialize()
+}
+
+def initialize() {
+}
