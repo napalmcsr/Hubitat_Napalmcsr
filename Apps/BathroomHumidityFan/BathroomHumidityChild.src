@@ -1,10 +1,9 @@
 /**
-*  Bathroom Humidity Fan Child
+*  Smart Humidity Fan
 *
 *  Turns on a fan when you start taking a shower... turns it back off when you are done.
 *    -Uses humidity change rate for rapid response
 *    -Timeout option when manaully controled (for stench mitigation)
-*    -Parent/Child by Lewis Heidrick
 *
 *  Copyright 2018 Craig Romei
 *  GNU General Public License v2 (https://www.gnu.org/licenses/gpl-2.0.txt)
@@ -26,11 +25,37 @@ preferences {
     page(name: "page1")
 }
 
+def appButtonHandler(btn) {
+  if (btn == "pause") {
+    state.paused = !state.paused
+    if (state.paused) {
+      unschedule()
+      unsubscribe()
+      updateLabel()
+    } else {
+      initialize()
+      updateLabel()
+    }
+  }
+}
+
 def page1() {
   section() {
   }
     state.isDebug = isDebug
+    state.displayName = "New"
     dynamicPage(name: "page1", install: true, uninstall: true) {
+    if (state.paused) {
+      state.pauseButtonName = "Resume"
+      state.status = "Paused"
+      updateLabel()
+    } else {
+      state.pauseButtonName = "Pause"
+      updateLabel()
+    }
+    section("") {
+      input name: "pause", type: "button", title: state.pauseButtonName
+    }    
     section("What do you want to name the new app") {
     label title: "Enter a name for this child app", required:false, submitOnChange:true
     }
@@ -75,25 +100,60 @@ def page1() {
 def installed()
 {
 	initialize()
+    state.paused = false
+    state.displayName = "New"
 }
 
 def updated()
 {
 	unsubscribe()
     unschedule()
+    state.variableRefresh = ""
 	initialize()
+    updateLabel()
 }
 
 def initialize()
 {
     infolog "Initializing"
-	state.OverThreshold = false
-	state.AutomaticallyTurnedOn = false
-	state.TurnOffLaterStarted = false
+	   state.OverThreshold = false
+	   state.AutomaticallyTurnedOn = false
+	   state.TurnOffLaterStarted = false
     subscribe(HumiditySensor, "humidity", HumidityHandler)
     subscribe(FanSwitch, "switch", FanSwitchHandler)
 	subscribe(location, "mode", modeChangeHandler)
+    updateLabel()
 }
+
+void updateLabel() {
+if (!state.displayName.contains(" <span"))                      {state.displayName}
+if (state.displayName.contains(" <span style=color:red>"))      {state.displayName(app.label.minus("<span style=color:red>(Paused)</span>" ))}
+if (state.displayName.contains(" <span style=color:green>"))    {state.displayName(app.label.minus("<span style=color:green>(On)</span>" ))}
+if (state.displayName.contains(" <span style=color:blue>"))     {state.displayName(app.label.minus("<span style=color:blue>(Off)</span>" ))}
+if (state.displayName.contains(" <span style=color:white>"))    {state.displayName(app.label.minus("<span style=color:white></span>" ))}
+
+  if (state?.status || state?.paused) {
+    def status = state?.status
+    String label = "${state.displayName} <span style=color:"
+    if (state?.paused) {
+      status = "(Paused)"
+      label += "red"
+    } else if (state.status == "(On)") {
+      status = "(On)"
+      label += "green"
+    } else if (state.status == "(Off)") {
+      status = "(Off)"
+      label += "blue"
+    } else {
+      status = ""  
+      label += "white"
+    }
+    label += ">${status}</span>"
+    app.updateLabel(label)
+  }
+}
+
+
 
 def modeChangeHandler(evt)
 {
@@ -225,22 +285,30 @@ def FanSwitchHandler(evt)
 	switch(evt.value)
 	{
 		case "on":
+            state.status = "(On)"
+            updateLabel()
 			if(!state.AutomaticallyTurnedOn && (ManualControlMode == "After Set Time") && ManualOffMinutes)
 			{
 				if(ManualOffMinutes == 0)
 				{
 					debuglog "FanSwitchHandler::Fan Off"
+                    state.status = "(Off)"
+                    updateLabel()
 					TurnOffFanSwitch()
 				}
 					else
 				{
 					debuglog "FanSwitchHandler::Will turn off later"
+                    state.status = "(On)"
+                    updateLabel()
 					runIn(60 * ManualOffMinutes.toInteger(), TurnOffFanSwitch)
 				}
 			}
 			break
         case "off":
 			debuglog "FanSwitchHandler::Switch turned off"
+            state.status = "(Off)"
+            updateLabel()
 			state.AutomaticallyTurnedOn = false
 			state.TurnOffLaterStarted = false
             unschedule()
@@ -279,6 +347,8 @@ def TurnOffFanSwitch()
     if(FanSwitch.currentValue("switch") == "on")
     {
         infolog "TurnOffFanSwitch:Fan Off"
+        state.status = "(Off)"
+        updateLabel()
         FanSwitch.off()
         state.AutomaticallyTurnedOn = false
         state.TurnOffLaterStarted = false
@@ -288,6 +358,8 @@ def TurnOffFanSwitch()
 def TurnOnFan()
 {
 	debuglog "TurnOnFan: Turning the Fan on"
+    state.status = "(On)"
+    updateLabel()
     FanSwitch.on()
     if(MaxRunTime)
     {
@@ -336,6 +408,6 @@ def getLogLevels(){
 
 
 def setVersion(){
-	state.version = "1.0.0" // Version number of this app
-	state.InternalName = "BathroomHumidityFan"   // this is the name used in the JSON file for this app
+	state.version = "2.0.7" // Version number of this app
+	state.InternalName = "SmartHumidityFan"   // this is the name used in the JSON file for this app
 }
