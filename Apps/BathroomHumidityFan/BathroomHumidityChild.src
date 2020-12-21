@@ -43,18 +43,17 @@ def appButtonHandler(btn) {
 def page1() {
   section() {
   }
-    state.isDebug = isDebug
     dynamicPage(name: "page1", install: true, uninstall: true) {
     if (state.paused) {
       state.pauseButtonName = "Resume"
       state.status = "Paused"
         if (state.installed){
-              updateLabel()
+          updateLabel()
         }
     } else {
       state.pauseButtonName = "Pause"
         if (state.installed){
-              updateLabel()
+          updateLabel()
         }
     }
     section("") {
@@ -68,11 +67,11 @@ def page1() {
       }
     label title: "Enter a name for this child app", required:false, defaultValue: defaultName, submitOnChange:true   
     }
-	   	section("Bathroom Devices")
+	   	section("")
 		{
 			input "HumiditySensor", "capability.relativeHumidityMeasurement", title: "Humidity Sensor:", required: true
 			paragraph "NOTE: The humidity sensor you select will need to report about 5 min or less."
-            input "FanSwitch", "capability.switch", title: "Fan Location:", required: true
+           		input "FanSwitch", "capability.switch", title: "Fan Location:", required: true
 		}
 		section("Fan Activation")
 		{
@@ -85,7 +84,7 @@ def page1() {
 		{
 			input "HumidityDropTimeout", "number", title: "How long after the humidity starts to drop should the fan turn off (minutes):", required: true, defaultValue:  10
 			input "HumidityDropLimit", "number", title: "What percentage above the starting humidity before triggering the turn off delay:", required: true, defaultValue:  25
-            input "MaxRunTime", "number", title: "Maximum time(minutes) for Fan to run when automatically turned on:", required: false, defaultValue: 120
+            		input "MaxRunTime", "number", title: "Maximum time(minutes) for Fan to run when automatically turned on:", required: false, defaultValue: 120
 		}
 		section("Manual Activation")
 		{
@@ -102,7 +101,6 @@ def page1() {
                   updateLabel()
                 } else {
                   state.pauseButtonName = "Pause"
-//                  updateLabel()
                 }
 		}
 		section("Logging")
@@ -114,30 +112,42 @@ def page1() {
 
 def installed()
 {
-	initialize()
-    state.paused = false
+    initialize()
     state.paused = false
     state.installed = true
 }
 
 def updated()
 {
-	unsubscribe()
+    unsubscribe()
     unschedule()
-    state.variableRefresh = ""
-	initialize()
+    initialize()
     updateLabel()
 }
 
 def initialize()
 {
     infolog "Initializing"
-	   state.OverThreshold = false
-	   state.AutomaticallyTurnedOn = false
-	   state.TurnOffLaterStarted = false
+    if(FanSwitch.currentValue("switch") == "on")
+    {
+      if (!state?.paused) {
+         state.status = "(On)"
+         updateLabel()
+      }
+    }
+    if(FanSwitch.currentValue("switch") == "off")
+    {
+      if (!state?.paused) {
+         state.status = "(Off)"
+         updateLabel()
+      }
+    }
+    state.OverThreshold = false
+    state.AutomaticallyTurnedOn = false
+    state.TurnOffLaterStarted = false
     subscribe(HumiditySensor, "humidity", HumidityHandler)
     subscribe(FanSwitch, "switch", FanSwitchHandler)
-	subscribe(location, "mode", modeChangeHandler)
+    subscribe(location, "mode", modeChangeHandler)
     updateLabel()
 }
 
@@ -164,15 +174,13 @@ if (!state.displayName.contains(" <span"))                      {state.displayNa
       status = "(Off)"
       label += "blue"
     } else {
-      status = " "  
+      status = ""
       label += "white"
     }
     label += ">${status}</span>"
     app.updateLabel(label)
   }
 }
-
-
 
 def modeChangeHandler(evt)
 {
@@ -194,7 +202,7 @@ def modeChangeHandler(evt)
 
 def HumidityHandler(evt)
 {
-	infolog "HumidityHandler:running humidity check"
+	infolog "HumidityHandler: running humidity check"
 	def allModes = settings.modes
 	def modeStop = false
 	debuglog "HumidityHandler: state.OverThreshold = ${state.OverThreshold}"
@@ -258,15 +266,15 @@ def HumidityHandler(evt)
     {
 		state.AutomaticallyTurnedOn = true
 		state.TurnOffLaterStarted = false
-		infolog "HumidityHandler:Turn On Fan due to humidity increase"
+		infolog "HumidityHandler: Turn On Fan due to humidity increase"
         if ((FanOnDelay>0)&&(FanOnDelay!=null))
         {
-            debuglog "HumidityHandler:Turn On Fan later"
+            debuglog "HumidityHandler: Turn On Fan later"
             runIn(60 * FanOnDelay.toInteger(), TurnOnFan)
         }
         else
         {
-		    TurnOnFan()
+	    TurnOnFan()
         }
         state.StartingHumidity = state.lastHumidity
         state.HighestHumidity = state.currentHumidity    
@@ -281,12 +289,12 @@ def HumidityHandler(evt)
         {
             if(HumidityDropTimeout == 0)
             {
-                infolog "HumidityHandler:Fan Off"
+                infolog "HumidityHandler: Turning the Fan off now"
                 TurnOffFanSwitch()
             }
             else
             {
-				infolog "HumidityHandler:Turn Fan off in ${HumidityDropTimeout} minutes."
+				infolog "HumidityHandler: Turn Fan off in ${HumidityDropTimeout} minutes."
 				state.TurnOffLaterStarted = true
 				runIn(60 * HumidityDropTimeout.toInteger(), TurnOffFanSwitchCheckHumidity)
 				debuglog "HumidityHandler: state.TurnOffLaterStarted = ${state.TurnOffLaterStarted}"
@@ -297,27 +305,27 @@ def HumidityHandler(evt)
 
 def FanSwitchHandler(evt)
 {
-	infolog "FanSwitchHandler::Switch changed"
+	infolog "FanSwitchHandler: Switch changed"
 	debuglog "FanSwitchHandler: ManualControlMode = ${ManualControlMode}"
 	debuglog "FanSwitchHandler: ManualOffMinutes = ${ManualOffMinutes}"
 	debuglog "HumidityHandler: state.AutomaticallyTurnedOn = ${state.AutomaticallyTurnedOn}"
 	switch(evt.value)
 	{
-		case "on":
+	case "on":
             state.status = "(On)"
             updateLabel()
 			if(!state.AutomaticallyTurnedOn && (ManualControlMode == "After Set Time") && ManualOffMinutes)
 			{
 				if(ManualOffMinutes == 0)
 				{
-					debuglog "FanSwitchHandler::Fan Off"
+					debuglog "FanSwitchHandler: Turning the Fan off now"
                     state.status = "(Off)"
                     updateLabel()
 					TurnOffFanSwitch()
 				}
 					else
 				{
-					debuglog "FanSwitchHandler::Will turn off later"
+					debuglog "FanSwitchHandler: Will turn off later"
                     state.status = "(On)"
                     updateLabel()
 					runIn(60 * ManualOffMinutes.toInteger(), TurnOffFanSwitch)
@@ -325,13 +333,13 @@ def FanSwitchHandler(evt)
 			}
 			break
         case "off":
-			debuglog "FanSwitchHandler::Switch turned off"
+	    debuglog "FanSwitchHandler: Switch turned off"
             state.status = "(Off)"
             updateLabel()
-			state.AutomaticallyTurnedOn = false
-			state.TurnOffLaterStarted = false
+	    state.AutomaticallyTurnedOn = false
+	    state.TurnOffLaterStarted = false
             unschedule()
-			break
+	    break
     }
 }
 
@@ -365,7 +373,7 @@ def TurnOffFanSwitch()
 {
     if(FanSwitch.currentValue("switch") == "on")
     {
-        infolog "TurnOffFanSwitch:Fan Off"
+        infolog "TurnOffFanSwitch: Fan Off"
         state.status = "(Off)"
         updateLabel()
         FanSwitch.off()
@@ -376,7 +384,7 @@ def TurnOffFanSwitch()
 
 def TurnOnFan()
 {
-	debuglog "TurnOnFan: Turning the Fan on"
+    debuglog "TurnOnFan: Turning the Fan on"
     state.status = "(On)"
     updateLabel()
     FanSwitch.on()
@@ -403,7 +411,7 @@ def CheckThreshold(evt)
 
 def debuglog(statement)
 {   
-	def logL = 0
+    def logL = 0
     if (logLevel) logL = logLevel.toInteger()
     if (logL == 0) {return}//bail
     else if (logL >= 2)
@@ -413,7 +421,7 @@ def debuglog(statement)
 }
 def infolog(statement)
 {       
-	def logL = 0
+    def logL = 0
     if (logLevel) logL = logLevel.toInteger()
     if (logL == 0) {return}//bail
     else if (logL >= 1)
@@ -427,6 +435,6 @@ def getLogLevels(){
 
 
 def setVersion(){
-	state.version = "1.0.1" // Version number of this app
-	state.InternalName = "BathroomHumidityFan"   // this is the name used in the JSON file for this app
+    state.version = "1.0.2" // Version number of this app
+    state.InternalName = "BathroomHumidityFan"   // this is the name used in the JSON file for this app
 }
