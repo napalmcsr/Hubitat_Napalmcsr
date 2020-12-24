@@ -6,6 +6,11 @@
  * 
  */
 
+def setVersion(){
+	state.version = "1.0.3" // Version number of this app
+	state.InternalName = "BathroomHumidityFan"   // this is the name used in the JSON file for this app
+}
+
 definition(
     name: "Bathroom Humidity Fan",
     namespace: "Craig.Romei",
@@ -15,8 +20,8 @@ definition(
     category: "Convenience",
     iconUrl: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg",
     iconX2Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg",
-    iconX3Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg"
-)
+    iconX3Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg",
+    importUrl: "https://raw.githubusercontent.com/napalmcsr/Hubitat_Napalmcsr/master/Apps/BathroomHumidityFan/BathroomHumidity.src")
 
 preferences {
 	page(name: "mainPage")
@@ -47,8 +52,4 @@ def updated() {
 }
 
 def initialize() {
-}
-def setVersion(){
-	state.version = "1.0.2" // Version number of this app
-	state.InternalName = "BathroomHumidityFan"   // this is the name used in the JSON file for this app
 }
