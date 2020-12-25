@@ -97,7 +97,10 @@ def mainPage() {
 			input "ManualControlMode", "enum", title: "When should the fan turn off when turned on manually?", required: true, options: ["Manually", "By Humidity", "After Set Time"], defaultValue: "After Set Time"
 			input "ManualOffMinutes", "number", title: "How many minutes until the fan is auto-turned-off?", required: false, defaultValue: 20
 		}
-		section("Logging") {                    
+        section(title: "Additional Features:", hideable: true, hidden: hideOptionsSection()) {
+		    input "deviceActivationSwitch", "capability.switch", title: "Switches to turn on and off the fan immediately.", submitOnChange:false, required:false, multiple:true
+        }
+        section("Logging") {                    
 		    input "isDebug", "bool", title: "Enable debug logging for 30 minutes", submitOnChange: true, defaultValue: false
             input "ifLevel","enum", title: "IDE logging level",required: true, options: getLogLevels(), defaultValue : "1"
 		}
@@ -111,7 +114,7 @@ def mainPage() {
         }
 	}
 }
-
+// Application settings and startup
 def installed() {
     ifDebug("installed")
     initialize()
@@ -135,6 +138,8 @@ def initialize() {
     subscribe(enableDisableSwitch, "switch.off", enableDisableOffHandler)
     state.enableDisable = true
     enableDisable = "(Enabled)"
+    subscribe(deviceActivationSwitch, "switch.on", deviceActivationSwitchHandler)
+    subscribe(deviceActivationSwitch, "switch.off", deviceActivationSwitchHandler)
     state.OverThreshold = false
     state.AutomaticallyTurnedOn = false
     state.TurnOffLaterStarted = false
@@ -145,6 +150,7 @@ def initialize() {
     updateLabel()
 }
 
+// Device Handlers
 def modeChangeHandler(evt) {
 	ifDebug("modeChangeHandler")
     checkEnableDisableHandler()
@@ -308,9 +314,8 @@ def HumidityHandler(evt) {
 def FanSwitchHandler(evt) {
     ifDebug("FanSwitchHandler")
     checkEnableDisableHandler()
-    if (enableDisable == "Enabled") {
+    if (enableDisable == "Enabled" || enableDisable == null) {
         if (evt.value == "on") {
-            ifDebug("FanSwitchHandler: Update label before additional checks")
             if(!state.AutomaticallyTurnedOn && (ManualControlMode == "After Set Time") && ManualOffMinutes) {
 	            if(ManualOffMinutes == 0) {
                     ifDebug("FanSwitchHandler: Turning the Fan off now")
@@ -323,13 +328,13 @@ def FanSwitchHandler(evt) {
             }    
         }
     } else {
-}
-    if (evt.value == "off") {
-        ifDebug("FanSwitchHandler: Switch turned off")
-        state.status = "(Off)"
-        state.AutomaticallyTurnedOn = false
-        state.TurnOffLaterStarted = false
-        unschedule()
+        if (evt.value == "off") {
+            ifDebug("FanSwitchHandler: Switch turned off")
+            state.status = "(Off)"
+            state.AutomaticallyTurnedOn = false
+            state.TurnOffLaterStarted = false
+            unschedule()
+        }
     }
     updateLabel()
 }
@@ -375,28 +380,33 @@ def enableDisableOffHandler(evt) {
     }
 checkEnableDisableHandler()    
 }
-    
-def checkEnableDisableHandler() {
-    ifDebug("checkEnableDisableHandler")
-    if (state.enableDisableSwitchState == true) {
-        if (enableDisableSwitchState == "Enabled") {
-            enableDisable = "Enabled"
-            state.enableDisable = true
-        }
-        if (enableDisableSwitchState == "Disabled") {
-            enableDisable = "Disabled"
-            state.enableDisable = true
-        }
-    } else if (!enableDisableSwitchState) {
-        enableDisable = "Enabled"
-        state.enableDisable = true
-    } else {
-    enableDisable = "Unknown"
-    state.enableDisable = false
-    }
-fanStatus()
-}
 
+def deviceActivationSwitchHandler(evt) {
+    ifDebug("deviceActivationSwitchHandler")
+    checkPausedOrDisabled()
+    if (state.pausedOrDisabled == false) {
+        if(deviceActivationSwitch) {
+            deviceActivationSwitch.each { it ->
+                deviceActivationSwitchState = it.currentValue("switch")
+            }
+                    if (deviceActivationSwitchState == "on") {
+                        ifDebug("deviceActivationSwitchHandler: Turning the Fan on now")
+                        TurnOnFan()
+                        state.AutomaticallyTurnedOn = false
+                    } else if (deviceActivationSwitchState == "off") {
+                        ifDebug("deviceActivationSwitchHandler: Turning the Fan off now")
+                        TurnOffFanSwitch()
+                        state.TurnOffLaterStarted = false
+                        unschedule()
+                        updateLabel()
+                    }
+        }
+    } else {
+        ifDebug("deviceActivationSwitchHandler: Application is paused or disabled.")
+    }
+}
+    
+//Label Updates
 void updateLabel() {
     ifDebug("updateLabel")
     if (!app.label.contains("<span") && !app.label.contains("Paused") && !app.label.contains("Disabled")) {
@@ -442,6 +452,65 @@ def appButtonHandler(btn) {
   }
 }
 
+// Logic functions
+
+// Application Page settings
+private hideOptionsSection() {
+	(starting || ending || days || modes || manualCount) ? false : true
+}
+
+private getAllOk() {
+	modeOk && daysOk && timeOk
+}
+
+private getModeOk() {
+	def result = !modes || modes.contains(location.mode)
+    ifDebug("modeOk = ${result}")
+	result
+}
+
+private getDaysOk() {
+	def result = true
+	if (days) {
+		def df = new java.text.SimpleDateFormat("EEEE")
+		if (location.timeZone) {
+			df.setTimeZone(location.timeZone)
+		}
+		else {
+			df.setTimeZone(TimeZone.getTimeZone("America/New_York"))
+		}
+		def day = df.format(new Date())
+		result = days.contains(day)
+	}
+    ifDebug("daysOk = ${result}")
+	result
+}
+
+private getTimeOk() {
+	def result = true
+	if (starting && ending) {
+		def currTime = now()
+		def start = timeToday(starting).time
+		def stop = timeToday(ending).time
+		result = start < stop ? currTime >= start && currTime <= stop : currTime <= stop || currTime >= start
+	}
+    ifDebug{"timeOk = ${result}"}
+	result
+}
+
+private hhmm(time, fmt = "h:mm a") {
+	def t = timeToday(time, location.timeZone)
+	def f = new java.text.SimpleDateFormat(fmt)
+	f.setTimeZone(location.timeZone ?: timeZone(time))
+	f.format(t)
+}
+    
+private timeIntervalLabel() {
+	(starting && ending) ? hhmm(starting) + "-" + hhmm(ending, "h:mm a z") : ""
+}
+
+
+// Application functions
 def TurnOffFanSwitchMaxTime() {
     ifDebug("TurnOffFanSwitchMaxTime")
 	TurnOffFanSwitch()
@@ -529,63 +598,34 @@ def compareHumidity() {
     }
 }
 
+def checkEnableDisableHandler() {
+    ifDebug("checkEnableDisableHandler")
+    if (state.enableDisableSwitchState == true) {
+        if (enableDisableSwitchState == "Enabled") {
+            enableDisable = "Enabled"
+            state.enableDisable = true
+        }
+        if (enableDisableSwitchState == "Disabled") {
+            enableDisable = "Disabled"
+            state.enableDisable = true
+        }
+    } else if (!enableDisableSwitchState) {
+        enableDisable = "Enabled"
+        state.enableDisable = true
+    } else {
+    enableDisable = "Unknown"
+    state.enableDisable = false
+    }
+fanStatus()
+}
+
+def checkPausedOrDisabled() {
+    if (state?.enabledDisabled || state?.paused) { state.pausedOrDisabled = true } else { state.pausedOrDisabled = false }
+}
+
 def changeMode(mode) {
     ifDebug("Changing Mode to: ${mode}")
 	if (location.mode != mode && location.modes?.find { it.name == mode}) setLocationMode(mode)
-}
-
-private hideOptionsSection() {
-	(starting || ending || days || modes || manualCount) ? false : true
-}
-
-private getAllOk() {
-	modeOk && daysOk && timeOk
-}
-
-private getModeOk() {
-	def result = !modes || modes.contains(location.mode)
-    ifDebug("modeOk = ${result}")
-	result
-}
-
-private getDaysOk() {
-	def result = true
-	if (days) {
-		def df = new java.text.SimpleDateFormat("EEEE")
-		if (location.timeZone) {
-			df.setTimeZone(location.timeZone)
-		}
-		else {
-			df.setTimeZone(TimeZone.getTimeZone("America/New_York"))
-		}
-		def day = df.format(new Date())
-		result = days.contains(day)
-	}
-    ifDebug("daysOk = ${result}")
-	result
-}
-
-private getTimeOk() {
-	def result = true
-	if (starting && ending) {
-		def currTime = now()
-		def start = timeToday(starting).time
-		def stop = timeToday(ending).time
-		result = start < stop ? currTime >= start && currTime <= stop : currTime <= stop || currTime >= start
-	}
-    ifDebug{"timeOk = ${result}"}
-	result
-}
-
-private hhmm(time, fmt = "h:mm a") {
-	def t = timeToday(time, location.timeZone)
-	def f = new java.text.SimpleDateFormat(fmt)
-	f.setTimeZone(location.timeZone ?: timeZone(time))
-	f.format(t)
-}
-    
-private timeIntervalLabel() {
-	(starting && ending) ? hhmm(starting) + "-" + hhmm(ending, "h:mm a z") : ""
 }
 
 def fanStatus() {
@@ -609,6 +649,7 @@ def fanStatus() {
     }
 }
 
+// Logging functions
 def disableDebugIn30() {
     if (isDebug == true) {
         runIn(1800, debugOff)
