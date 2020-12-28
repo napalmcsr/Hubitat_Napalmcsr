@@ -12,7 +12,7 @@
 */
 
 def setVersion() {
-    state.version = "1.0.4" // Version number of this app
+    state.version = "1.0.5" // Version number of this app
     state.InternalName = "BathroomHumidityFan"   // this is the name used in the JSON file for this app
 }
 
@@ -39,38 +39,46 @@ preferences {
 }
 
 def mainPage() {
-  if (!isDebug) {
-      app.updateSetting("isDebug", false)
-  }
-  ifDebug("mainPage")
-  if (isDebug == true) {
-      runIn(1800, debugOff)
-  }
-  section() {
-  }
-    dynamicPage(name: "mainPage", install: true, uninstall: true) {
-    if (state.paused) {
-      state.pauseButtonName = "Resume"
-      state.status = "Paused"
-        if (state.installed){
-          updateLabel()
-        }
-    } else {
-      state.pauseButtonName = "Pause"
-        if (state.installed){
-          updateLabel()
-        }
+    ifTrace("mainPage")
+    if (!isDebug) {
+        app.updateSetting("isDebug", false)
     }
+    if (isTrace == true) {
+        runIn(1800, traceOff)
+    }
+    if (isDebug == true) {
+        runIn(1800, debugOff)
+    }
+    if (isTrace == true) {
+        runIn(1800, traceOff)
+    }
+
+    dynamicPage(name: "mainPage", install: true, uninstall: true) {
+        ifDebug("mainPage: [state.status = ${state?.status}] [state.paused = ${state?.paused}] [state.disabled = ${state.disabled}]")
+        if (state?.disabled == "Disabled") {
+            state.pauseButtonName = "Enable"
+            unsubscribe()
+            unschedule()
+            subscribe(disabledSwitch, "switch", disabledHandler)
+        } else if (state.paused == true) {
+            state.pauseButtonName = "Resume"
+            unsubscribe()
+            unschedule()
+            subscribe(disabledSwitch, "switch", disabledHandler)
+        } else {
+            state.pauseButtonName = "Pause"
+            initialize()
+        }
     section("") {
-      input name: "pause", type: "button", title: state.pauseButtonName, submitOnChange:true
-    }     
+      input name: "Pause", type: "button", title: state.pauseButtonName, submitOnChange:true
+    }
     section("") {
     String defaultName = "Enter a name for this child app"
         if (state.displayName) {
             defaultName = state.displayName
             app.updateLabel(defaultName)
         }
-    label title: "Enter a name for this child app", required:false, defaultValue: defaultName, submitOnChange:true   
+    label title: "Enter a name for this child app", required:false, defaultValue: defaultName, submitOnChange:true
     }
 	   	section("") {
 			input "HumiditySensor", "capability.relativeHumidityMeasurement", title: "Humidity Sensor:", required: true
@@ -78,31 +86,30 @@ def mainPage() {
            	input "FanSwitch", "capability.switch", title: "Fan Location:", required: true
             input "CompareHumiditySensor", "capability.relativeHumidityMeasurement", title: "Compare to this baseline Humidity Sensor:", required: false
 		}
-		section("Fan Activation")
-		{
+		section("Fan Activation"){
 			input "HumidityIncreaseRate", "number", title: "Humidity Increase Rate :", required: true, defaultValue: 2
 			input "HumidityThreshold", "number", title: "Humidity Threshold (%):", required: false, defaultValue: 65
 			input "FanOnDelay", "number", title: "Delay turning fan on (Minutes):", required: false, defaultValue: 0
-            
 		}
-		section("Fan Deactivation")
-		{
+		section("Fan Deactivation") {
 			input "HumidityDropTimeout", "number", title: "How long after the humidity starts to drop should the fan turn off (minutes):", required: true, defaultValue:  10
 			input "HumidityDropLimit", "number", title: "What percentage above the starting humidity before triggering the turn off delay:", required: true, defaultValue:  25
             input "MaxRunTime", "number", title: "Maximum time(minutes) for Fan to run when automatically turned on:", required: false, defaultValue: 120
             input "HumidityIncreasedBy", "number", title: "When humidity rises above or equal to this amount plus the baseline sensor humidity turn on the fan: ", required: false, defaultValue: 9
 		}
-		section("Manual Activation")
-		{
+		section("Manual Activation") {
 			input "ManualControlMode", "enum", title: "When should the fan turn off when turned on manually?", required: true, options: ["Manually", "By Humidity", "After Set Time"], defaultValue: "After Set Time"
 			input "ManualOffMinutes", "number", title: "How many minutes until the fan is auto-turned-off?", required: false, defaultValue: 20
 		}
         section(title: "Additional Features:", hideable: true, hidden: hideOptionsSection()) {
 		    input "deviceActivationSwitch", "capability.switch", title: "Switches to turn on and off the fan immediately.", submitOnChange:false, required:false, multiple:true
         }
-        section("Logging") {                    
-		    input "isDebug", "bool", title: "Enable debug logging for 30 minutes", submitOnChange: true, defaultValue: false
+        section("Logging") { 
+            input "isInfo", "bool", title: "Enable Info logging for 30 minutes", submitOnChange: true, defaultValue: false
+            input "isDebug", "bool", title: "Enable debug logging for 30 minutes", submitOnChange: true, defaultValue: false
+		    input "isTrace", "bool", title: "Enable Trace logging for 30 minutes", submitOnChange: true, defaultValue: false
             input "ifLevel","enum", title: "IDE logging level",required: true, options: getLogLevels(), defaultValue : "1"
+            paragraph "NOTE: IDE logging level overrides the temporary logging selections."
 		}
         section(title: "Only Run When:", hideable: true, hidden: hideOptionsSection()) {
 		    def timeLabel = timeIntervalLabel()
@@ -110,20 +117,20 @@ def mainPage() {
 		    input "days", "enum", title: "Only on certain days of the week", multiple: true, required: false,
 		    options: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 		    input "modes", "mode", title: "Only when mode is", multiple: true, required: false
-            input "enableDisableSwitch", "capability.switch", title: "Switch to Enable and Disable this app.", submitOnChange:true, required:false, multiple:true
+            input "disabledSwitch", "capability.switch", title: "Switch to Enable and Disable this app.", submitOnChange:true, required:false, multiple:true
+            paragraph "NOTE: The disabled switch can be overridden until the next time this switch is toggled by clicking the Enable button at the top of the page."
         }
 	}
 }
 // Application settings and startup
 def installed() {
-    ifDebug("installed")
+    ifTrace("installed")
     initialize()
-    state.paused = false
     state.installed = true
 }
 
 def updated() {
-    ifDebug("updated")
+    ifTrace("updated")
     unsubscribe()
     unschedule()
     initialize()
@@ -131,15 +138,11 @@ def updated() {
 }
 
 def initialize() {
-    ifDebug("initialize")
+    ifTrace("initialize")
     ifDebug("Settings: ${settings}")
     subscribe(FanSwitch, "switch", FanSwitchHandler)
-    subscribe(enableDisableSwitch, "switch.on", enableDisableOnHandler)
-    subscribe(enableDisableSwitch, "switch.off", enableDisableOffHandler)
-    state.enableDisable = true
-    enableDisable = "(Enabled)"
-    subscribe(deviceActivationSwitch, "switch.on", deviceActivationSwitchHandler)
-    subscribe(deviceActivationSwitch, "switch.off", deviceActivationSwitchHandler)
+    subscribe(disabledSwitch, "switch", disabledHandler)
+    subscribe(deviceActivationSwitch, "switch", deviceActivationSwitchHandler)
     state.OverThreshold = false
     state.AutomaticallyTurnedOn = false
     state.TurnOffLaterStarted = false
@@ -147,32 +150,30 @@ def initialize() {
     subscribe(FanSwitch, "switch", FanSwitchHandler)
     subscribe(location, "mode", modeChangeHandler)
 	compareHumidity()
+    checkPausedOrDisabled()
     updateLabel()
 }
 
 // Device Handlers
 def modeChangeHandler(evt) {
-	ifDebug("modeChangeHandler")
-    checkEnableDisableHandler()
-    def allModes = settings.modes
-	if(allModes)
-	{
-		if(!allModes.contains(location.mode))
-		{
-			ifDebug("modeChangeHandler: Entered a disable mode, turning off the Fan")
-			TurnOffFanSwitch()
-		}
-	} 
-	else
-	{	
-		ifDebug("modeChangeHandler: Entered a disable mode, turning off the Fan")
-		TurnOffFanSwitch()
-	}
+	ifTrace("modeChangeHandler")
+        checkPausedOrDisabled()
+        if (state.pausedOrDisabled == false) {
+            def allModes = settings.modes
+        if(allModes) {
+		    if(!allModes.contains(location.mode)) {
+			    ifDebug("modeChangeHandler: Entered a disable mode, turning off the Fan")
+			    TurnOffFanSwitch()
+		    }
+	    } else {	
+            ifDebug("modeChangeHandler: Entered a disable mode, turning off the Fan")
+		    TurnOffFanSwitch()
+        }
+    }
 }
 
 def HumidityHandler(evt) {
-	ifDebug("HumidityHandler")
-    checkEnableDisableHandler()
+	ifTrace("HumidityHandler")
 	def allModes = settings.modes
 	def modeStop = false
 	ifDebug("HumidityHandler: state.OverThreshold = ${state.OverThreshold}")
@@ -230,8 +231,7 @@ def HumidityHandler(evt) {
 	}
 	state.currentHumidityDate = evt.date.time
 	state.HumidityChangeRate = state.currentHumidity - state.lastHumidity
-	if(state.currentHumidity>state.HighestHumidity)
-	{
+	if(state.currentHumidity>state.HighestHumidity)	{
 		state.HighestHumidity = state.currentHumidity
 	}
 	state.targetHumidity = state.StartingHumidity+HumidityDropLimit/100*(state.HighestHumidity-state.StartingHumidity)              
@@ -250,27 +250,22 @@ def HumidityHandler(evt) {
 	ifDebug("HumidityHandler: FanSwitch.current state = ${FanSwitch.currentValue("switch")}")
 	//if the humidity is high (or rising fast) and the fan is off, kick on the fan
 	if(allModes) {
-		if(!allModes.contains(location.mode))
-		{
+		if(!allModes.contains(location.mode)) {
 			modeStop = true
 		}
 	}
 	ifDebug("HumidityHandler: modeStop.current state = ${modeStop}")
-    if (((state.HumidityChangeRate>HumidityIncreaseRate)||state.OverThreshold) && (FanSwitch.currentValue("switch") == "off")&&!modeStop&&!state.AutomaticallyTurnedOn)
-    {
+    if (((state.HumidityChangeRate>HumidityIncreaseRate)||state.OverThreshold) && (FanSwitch.currentValue("switch") == "off")&&!modeStop&&!state.AutomaticallyTurnedOn) {
 		state.AutomaticallyTurnedOn = true
 		state.TurnOffLaterStarted = false
         state.AutomaticallyTurnedOnAt = new Date().format("yyyy-MM-dd HH:mm")
 		ifInfo("HumidityHandler: Turn On Fan due to humidity increase")
         ifInfo("HumidityHandler: Baseline humidity = (${CompareHumiditySensor}): ${state.baselineHumidity}")
-        if ((FanOnDelay>0)&&(FanOnDelay!=null))
-        {
+        if ((FanOnDelay>0)&&(FanOnDelay!=null)) {
             ifDebug("HumidityHandler: Turn On Fan later")
             runIn(60 * FanOnDelay.toInteger(), TurnOnFan)
-        }
-        else
-        {
-	    TurnOnFan()
+        } else {
+	        TurnOnFan()
         }
         state.StartingHumidity = state.lastHumidity
         state.HighestHumidity = state.currentHumidity    
@@ -278,8 +273,7 @@ def HumidityHandler(evt) {
 		ifDebug("HumidityHandler: new state.HighestHumidity = ${state.HighestHumidity}")
 		ifDebug("HumidityHandler: new state.targetHumidity = ${state.targetHumidity}")
 	}
-    else if ( ((state.currentHumidity)>=(state.threshold)) && (FanSwitch.currentValue("switch") == "off") && !modeStop)
-    {
+    else if ( ((state.currentHumidity)>=(state.threshold)) && (FanSwitch.currentValue("switch") == "off") && !modeStop) {
         state.AutomaticallyTurnedOn = true
         state.TurnOffLaterStarted = false
         state.AutomaticallyTurnedOnAt = new Date().format("yyyy-MM-dd HH:mm")
@@ -289,19 +283,13 @@ def HumidityHandler(evt) {
         FanSwitch.on()
         state.status = "(On)"
         updateLabel()
-    }
-	//turn off the fan when humidity returns to normal and it was kicked on by the humidity sensor
-	else if((state.AutomaticallyTurnedOn || ManualControlMode == "By Humidity")&& !state.TurnOffLaterStarted)
-	{    
-        if(state.currentHumidity<=state.targetHumidity)
-        {
-            if(HumidityDropTimeout == 0)
-            {
+    //turn off the fan when humidity returns to normal and it was kicked on by the humidity sensor
+    } else if((state.AutomaticallyTurnedOn || ManualControlMode == "By Humidity")&& !state.TurnOffLaterStarted) {    
+        if(state.currentHumidity<=state.targetHumidity) {
+            if(HumidityDropTimeout == 0) {
                 ifInfo("HumidityHandler: Turning the Fan off now")
                 TurnOffFanSwitch()
-            }
-            else
-            {
+            } else {
 				ifInfo("HumidityHandler: Turn Fan off in ${HumidityDropTimeout} minutes.")
 				state.TurnOffLaterStarted = true
 				runIn(60 * HumidityDropTimeout.toInteger(), TurnOffFanSwitchCheckHumidity)
@@ -312,9 +300,9 @@ def HumidityHandler(evt) {
 }
 
 def FanSwitchHandler(evt) {
-    ifDebug("FanSwitchHandler")
-    checkEnableDisableHandler()
-    if (enableDisable == "Enabled" || enableDisable == null) {
+    ifTrace("FanSwitchHandler")
+    checkPausedOrDisabled()
+    if (state.pausedOrDisabled == false) {
         if (evt.value == "on") {
             if(!state.AutomaticallyTurnedOn && (ManualControlMode == "After Set Time") && ManualOffMinutes) {
 	            if(ManualOffMinutes == 0) {
@@ -326,80 +314,71 @@ def FanSwitchHandler(evt) {
                     state.status = "(On)"
                 }
             }    
-        }
-    } else {
-        if (evt.value == "off") {
-            ifDebug("FanSwitchHandler: Switch turned off")
-            state.status = "(Off)"
-            state.AutomaticallyTurnedOn = false
-            state.TurnOffLaterStarted = false
-            unschedule()
+        } else if (evt.value == "off") {
+                ifDebug("FanSwitchHandler: Switch turned off")
+                state.status = "(Off)"
+                state.AutomaticallyTurnedOn = false
+                state.TurnOffLaterStarted = false
+                unschedule()
         }
     }
     updateLabel()
 }
 
-def enableDisableOnHandler(evt) {
-    ifDebug("enableDisableOnHandler")
-    if(enableDisableSwitch) {
-        enableDisableSwitch.each { it ->
-        enableDisableSwitchState = it.currentValue("switch")
-            if (enableDisableSwitchState == "on") {
-                ifDebug("enableDisableOnHandler: enableDisableSwitchState = ${enableDisableSwitchState}")
-                state.enableDisableSwitchState = true
-                enableDisableSwitchState = "Enabled"
-                ifInfo("enableDisableOnHandler: Enable/Disable switch turned on")
-            } else if (enableDisableSwitchState == "off") {
-                state.enableDisableSwitchState = true
-                enableDisableSwitchState = "Disabled"
+def disabledHandler(evt) {
+    ifTrace("disabledHandler")
+    if(disabledSwitch) {
+        disabledSwitch.each { it ->
+        disabledSwitchState = it.currentValue("switch")
+            if (disabledSwitchState == "on") {
+                ifTrace("disabledHandler: disabledSwitchState = ${disabledSwitchState}")
+				state.disabled = ""
+                if (state?.paused) {
+                    state.status = "(Paused)"
+                    updateLabel()
+                } else {
+                    state.status = "${fanStatus()}"
+                    updateLabel()
+                }
+            } else if (disabledSwitchState == "off") {
+                state.pauseButtonName = "Enable"
+                state.status = "(Disabled)"
+                state.disabled = "Disabled"
+                updateLabel()
+                ifTrace("disabledHandler: Disabled")
             }
         }
     } else {
-        state.enableDisableSwitchState = false
-    }
-checkEnableDisableHandler()
-}
-
-def enableDisableOffHandler(evt) {
-    ifDebug("enableDisableOffHandler")
-    if(enableDisableSwitch) {
-        enableDisableSwitch.each { it ->
-        enableDisableSwitchState = it.currentValue("switch")
-            if(enableDisableSwitchState == "off") {
-                ifDebug("enableDisableOffHandler: enableDisableSwitchState = ${enableDisableSwitchState}")
-                state.enableDisableSwitchState = true
-                enableDisableSwitchState = "Disabled"
-                ifInfo("enableDisableOnHandler: Enable/Disable switch turned off")
-            } else if (enableDisableSwitchState == "on") {
-                state.enableDisableSwitchState = true
-                enableDisableSwitchState = "Enabled"
-            }
+        state.disabledSwitchState = false
+        state.disabledSwitch = false
+        state.disabled = false
+        if(!state.paused) {
+            state.status = "${fanStatus()}"
+            updateLabel()
         }
-    } else {
-        state.enableDisableSwitchState = false
     }
-checkEnableDisableHandler()    
 }
 
 def deviceActivationSwitchHandler(evt) {
-    ifDebug("deviceActivationSwitchHandler")
+    ifTrace("deviceActivationSwitchHandler")
+    ifTrace("DeviceActivationSwitchHandler: state.status = ${state.status} [state.paused = ${state.paused}] [state.disabled = ${state.disabled}]")
     checkPausedOrDisabled()
     if (state.pausedOrDisabled == false) {
         if(deviceActivationSwitch) {
             deviceActivationSwitch.each { it ->
                 deviceActivationSwitchState = it.currentValue("switch")
             }
-                    if (deviceActivationSwitchState == "on") {
-                        ifDebug("deviceActivationSwitchHandler: Turning the Fan on now")
-                        TurnOnFan()
-                        state.AutomaticallyTurnedOn = false
-                    } else if (deviceActivationSwitchState == "off") {
-                        ifDebug("deviceActivationSwitchHandler: Turning the Fan off now")
-                        TurnOffFanSwitch()
-                        state.TurnOffLaterStarted = false
-                        unschedule()
-                        updateLabel()
-                    }
+                if (deviceActivationSwitchState == "on") {
+                    ifDebug("deviceActivationSwitchHandler: Turning the Fan on now")
+                    TurnOnFan()
+                    state.AutomaticallyTurnedOn = false
+                } else if (deviceActivationSwitchState == "off") {
+                    ifDebug("deviceActivationSwitchHandler: Turning the Fan off now")
+                    TurnOffFanSwitch()
+                    state.TurnOffLaterStarted = false
+                    unschedule()
+                    updateLabel()
+                }
         }
     } else {
         ifDebug("deviceActivationSwitchHandler: Application is paused or disabled.")
@@ -408,68 +387,103 @@ def deviceActivationSwitchHandler(evt) {
     
 //Label Updates
 void updateLabel() {
-    ifDebug("updateLabel")
-    if (!app.label.contains("<span") && !app.label.contains("Paused") && !app.label.contains("Disabled")) {
+    ifTrace("updateLabel")
+    ifTrace("updateLabel: fanStatus() = ${fanStatus()}")
+        if (!app.label.contains("<span") && !app.label.contains("Paused") && !app.label.contains("Disabled")) {
         state.displayName = app.label
     }
-    ifDebug("updateLabel: state.status = ${state.status}")
-    if (state?.status || state?.paused || state?.enableDisable) {
-      def status = state?.status
-      String label = "${state.displayName} <span style=color:"
-      if (enableDisable == "Disabled") {
-            status = "(Disabled)"
+    ifTrace("updateLabel: [state.status = ${state.status}] [state.paused = ${state.paused}] [state.disabled = ${state.disabled}]")
+    if (state?.status || state?.paused || state?.disabled) {
+        String label = "${state.displayName} "
+        if (state?.disabled == "Disabled") {
+            ifTrace("updateLabel: Setting to Disabled")
+            state.pauseButtonName = "Enable"
             state.status = "(Disabled)"
-            label += "red"
+            label += "<span style=color:red>(Disabled)</span>"
+            app.updateLabel(label)
+            ifDebug("updateLabel: Label set to ${label}")
         } else if (state?.paused) {
-            status = "(Paused)"
-            label += "red"
+            ifTrace("updateLabel: Setting to Paused")
+            state.pauseButtonName = "Resume"
+            state.status = "(Paused)"
+            label += "<span style=color:red>(Paused)</span>"
+            app.updateLabel(label)
+            ifDebug("updateLabel: Label set to ${label}")
         } else if (state.status == "(On)") {
-            status = "(On)"
-            label += "green"
+            ifTrace("updateLabel: Setting to On")
+            state.status = "(On)"
+            label += "<span style=color:green>(On)</span>"
+            app.updateLabel(label)
+            ifDebug("updateLabel: Label set to ${label}")
         } else if (state.status == "(Off)") {
-            status = "(Off)"
-            label += "blue"
+            ifTrace("updateLabel: Setting to Off")
+            state.status = "(Off)"
+            label += "<span style=color:blue>(Off)</span>"
+            app.updateLabel(label)
+            ifDebug("updateLabel: Label set to ${label}")
         } else {
-            status = "(Unknown)"
-            label += "Unknown"
+            ifTrace("updateLabel: Setting to Unknown")
+            state.status = "(Unknown)"
+            label += "<span style=color:orange>(Unknown)</span>"
+            app.updateLabel(label)
+            ifDebug("updateLabel: Unknown Label set to ${label}")
         }
-    label += ">${status}</span>"
-    app.updateLabel(label)
     }
 }
 
+//Enable, Resume, Pause button
 def appButtonHandler(btn) {
-  if (btn == "pause") {
-    state.paused = !state.paused
-    if (state.paused) {
-      unschedule()
-      unsubscribe()
-      updateLabel()
-    } else {
-      initialize()
-      updateLabel()
+    ifTrace("appButtonHandler")
+    ifTrace("appButtonHandler: [state.status = ${state.status}] [state.paused = ${state.paused}] [state.disabled = ${state.disabled}]")
+    if (btn == "Enable") {
+        ifTrace("appButtonHandler - Enable button before updateLabel: [state.status = ${state.status}] [state.paused = ${state.paused}] [state.disabled = ${state.disabled}]")
+        updateLabel()
+        ifTrace("appButtonHandler - Enable button after updateLabel: [state.status = ${state.status}] [state.paused = ${state.paused}] [state.disabled = ${state.disabled}]")
+    } else if (btn == "Resume") {
+        state.disabled = false
+        state.paused = false
+        state.status = ""
+        ifTrace("appButtonHandler - Resume button before updateLabel: [state.status = ${state.status}] [state.paused = ${state.paused}] [state.disabled = ${state.disabled}]")
+        updateLabel()
+        ifTrace("appButtonHandler - Resume after updateLabel: [state.status = ${state.status}] [state.paused = ${state.paused}] [state.disabled = ${state.disabled}]")
+    } else if (btn == "Pause") {
+        state.disabled = false
+        state.paused = !state.paused
+        if (state.paused) {
+            unschedule()
+            unsubscribe()
+            ifTrace("appButtonHandler - Pause button before updateLabel: [state.status = ${state.status}] [state.paused = ${state.paused}] [state.disabled = ${state.disabled}]")
+            updateLabel()
+            ifTrace("appButtonHandler - Pause after updateLabel: [state.status = ${state.status}] [state.paused = ${state.paused}] [state.disabled = ${state.disabled}]")
+        } else {
+            initialize()
+            ifTrace("appButtonHandler: [state.status = ${state.status}] [state.paused = ${state.paused}] [state.disabled = ${state.disabled}]")
+            updateLabel()
+            ifTrace("appButtonHandler: [state.status = ${state.status}] [state.paused = ${state.paused}] [state.disabled = ${state.disabled}]")
+        }
     }
-  }
 }
-
-// Logic functions
 
 // Application Page settings
 private hideOptionsSection() {
+    ifTrace("hideOptionsSection")
 	(starting || ending || days || modes || manualCount) ? false : true
 }
 
 private getAllOk() {
+    ifTrace("getAllOk")
 	modeOk && daysOk && timeOk
 }
 
 private getModeOk() {
+    ifTrace("getModeOk")
 	def result = !modes || modes.contains(location.mode)
     ifDebug("modeOk = ${result}")
 	result
 }
 
 private getDaysOk() {
+    ifTrace("getDaysOk")
 	def result = true
 	if (days) {
 		def df = new java.text.SimpleDateFormat("EEEE")
@@ -487,6 +501,7 @@ private getDaysOk() {
 }
 
 private getTimeOk() {
+    ifTrace("getTimeOk")
 	def result = true
 	if (starting && ending) {
 		def currTime = now()
@@ -499,6 +514,7 @@ private getTimeOk() {
 }
 
 private hhmm(time, fmt = "h:mm a") {
+    ifTrace("hhmm")
 	def t = timeToday(time, location.timeZone)
 	def f = new java.text.SimpleDateFormat(fmt)
 	f.setTimeZone(location.timeZone ?: timeZone(time))
@@ -506,23 +522,58 @@ private hhmm(time, fmt = "h:mm a") {
 }
     
 private timeIntervalLabel() {
+    ifTrace("timeIntervalLabel")
 	(starting && ending) ? hhmm(starting) + "-" + hhmm(ending, "h:mm a z") : ""
 }
 
 
 // Application functions
+def fanStatus() {
+    ifTrace("fanStatus")
+    ifTrace("fanStatus: [state.status = ${state.status}] [state.paused = ${state.paused}] [state.disabled = ${state.disabled}]")
+    ifTrace("fanStatus: [FanSwitch.currentValue(switch) = ${FanSwitch.currentValue("switch")}]")
+    if (FanSwitch.currentValue("switch") == "on") {
+        ifTrace("fanStatus - FanSwitch.CurrentValue on: [state.paused = ${state?.paused}] [state.disabled = ${state?.disabled}] [state.disabled = ${state?.disabled == ""}])")
+        if ((state?.paused == false) && ((state?.disabled == false) || (state?.disabled == ""))) {
+            ifTrace("fanStatus548: [state.paused = ${state?.paused}] [state.disabled = ${state?.disabled}] [state.disabled = ${state?.disabled == ""}])")
+            state.status = "(On)"
+            ifDebug("fanStatus - On: state.status = ${state.status}")
+            if (state.status == "(On)") return "(On)"
+        } else {
+            log.info "${app.label} is Paused or Disabled"
+            ifTrace("fanStatus - FanSwitch.CurrentValue on: [state.paused = ${state?.paused}] [state.disabled = ${state?.disabled}]")
+        }
+    }
+    if (FanSwitch.currentValue("switch") == "off") {
+        ifTrace("fanStatus - FanSwitch.CurrentValue off: [state.paused = ${state?.paused}] [state.disabled = ${state?.disabled}] [state.disabled = ${state?.disabled == false}]")
+        if ((state?.paused == false) && (state?.disabled == false)) {
+           state.status = "(Off)"
+           ifDebug("fanStatus - Off: state.status = ${state.status}")
+           if (state.status == "(Off)") return "(Off)"
+           } else {
+           log.info "${app.label} is Paused or Disabled"
+           ifTrace("fanStatus - FanSwitch.CurrentValue off: [state.paused = ${state.paused}] [state.disabled = ${state.disabled}]")
+        }
+    }
+}
+
 def TurnOffFanSwitchMaxTime() {
-    ifDebug("TurnOffFanSwitchMaxTime")
-	TurnOffFanSwitch()
+    ifTrace("TurnOffFanSwitchMaxTime")
+    checkPausedOrDisabled()
+    if (state.pausedOrDisabled == false) {
+	    TurnOffFanSwitch()
+    }
 }
 
 def TurnOffFanSwitchCheckHumidity() {
-    ifDebug("TurnOffFanSwitchCheckHumidity")
-	if (FanSwitch.currentValue("switch") == "on") {
-		if(state.currentHumidity > state.targetHumidity) {
-			ifDebug("TurnOffFanSwitchCheckHumidity: Didn't turn off fan because humidity rate is ${state.HumidityChangeRate}")
-			state.AutomaticallyTurnedOn = true
-			state.TurnOffLaterStarted = false
+    ifTrace("TurnOffFanSwitchCheckHumidity")
+    checkPausedOrDisabled()
+    if (state.pausedOrDisabled == false) {
+        if (FanSwitch.currentValue("switch") == "on") {
+            if(state.currentHumidity > state.targetHumidity) {
+                ifDebug("TurnOffFanSwitchCheckHumidity: Didn't turn off fan because humidity rate is ${state.HumidityChangeRate}")
+                state.AutomaticallyTurnedOn = true
+                state.TurnOffLaterStarted = false
 		} else {
 			TurnOffFanSwitch()
 		}
@@ -530,62 +581,65 @@ def TurnOffFanSwitchCheckHumidity() {
 }
 
 def TurnOffFanSwitch() {
-    ifDebug("TurnOffFanSwitch")
-    if (FanSwitch.currentValue("switch") == "on")
-    {
-        ifInfo("TurnOffFanSwitch: Turning the Fan off now")
-        FanSwitch.off()
-        state.status = "(Off)"
-        updateLabel()
-        state.AutomaticallyTurnedOn = false
-        state.TurnOffLaterStarted = false
+    ifTrace("TurnOffFanSwitch")
+    checkPausedOrDisabled()
+    if (state.pausedOrDisabled == false) {
+        if (FanSwitch.currentValue("switch") == "on")
+        {
+            ifInfo("TurnOffFanSwitch: Turning the Fan off now")
+            FanSwitch.off()
+            state.status = "(Off)"
+            updateLabel()
+            state.AutomaticallyTurnedOn = false
+            state.TurnOffLaterStarted = false
+        }
     }
 }
 
 def TurnOffFanSwitchManual() {
-    ifDebug("TurnOffFanSwitchManual")
-    if ((FanSwitch.currentValue("switch") == "on") && (state.AutomaticallyTurnedOn == false))
-    {
-        ifInfo("TurnOffFanSwitchManual: Turning the Fan off now")
-        FanSwitch.off()
-        state.status = "(Off)"
-        updateLabel()
-        state.AutomaticallyTurnedOn = false
-        state.TurnOffLaterStarted = false
-    }
-    else
-    {
-        ifInfo("Not turning off switch, either the switch was off or the Auto routine kicked in")
+    ifTrace("TurnOffFanSwitchManual")
+    checkPausedOrDisabled()
+    if (state.pausedOrDisabled == false) {
+        if ((FanSwitch.currentValue("switch") == "on") && (state.AutomaticallyTurnedOn == false)) {
+            ifInfo("TurnOffFanSwitchManual: Turning the Fan off now")
+            FanSwitch.off()
+            state.status = "(Off)"
+            updateLabel()
+            state.AutomaticallyTurnedOn = false
+            state.TurnOffLaterStarted = false
+        } else {
+            ifInfo("Not turning off switch, either the switch was off or the Auto routine kicked in")
+        }
     }
 }
 
 def TurnOnFan() {
-    ifDebug("TurnOnFan")
-    FanSwitch.on()
-    state.status = "(On)"
-    updateLabel()
-    if (MaxRunTime)
-    {
-        ifDebug("Maximum run time is ${MaxRunTime} minutes")
-        runIn(60 * MaxRunTime.toInteger(), TurnOffFanSwitchMaxTime)
+    ifTrace("TurnOnFan")
+    checkPausedOrDisabled()
+    if (state.pausedOrDisabled == false) {
+        FanSwitch.on()
+        state.status = "(On)"
+        updateLabel()
+        if (MaxRunTime) {
+            ifDebug("Maximum run time is ${MaxRunTime} minutes")
+            runIn(60 * MaxRunTime.toInteger(), TurnOffFanSwitchMaxTime)
+        }
     }
 }
                   
 def CheckThreshold(evt) {
-	ifDebug("CheckThreshold")
+	ifTrace("CheckThreshold")
     double lastevtvalue = Double.parseDouble(evt.value.replace("%", ""))
     if (lastevtvalue >= HumidityThreshold) {  
 		ifInfo("IsHumidityPresent: Humidity is above the Threashold")
 		return true
-	}
-	else
-	{
+    } else {
 		return false
 	}
 }
 
 def compareHumidity() {
-    ifDebug("compareHumidity")
+    ifTrace("compareHumidity")
     if (CompareHumiditySensor == null) {
       myHumid = state.targetHumidity
     } else {
@@ -598,94 +652,107 @@ def compareHumidity() {
     }
 }
 
-def checkEnableDisableHandler() {
-    ifDebug("checkEnableDisableHandler")
-    if (state.enableDisableSwitchState == true) {
-        if (enableDisableSwitchState == "Enabled") {
-            enableDisable = "Enabled"
-            state.enableDisable = true
+def checkDisabled() {
+    ifTrace("checkDisabled")
+    if (state.disabledSwitchState == true) {
+        if (disabledSwitchState == "Enabled") {
+            state.disabled = false
+            state.status = "${fanStatus()}"
         }
-        if (enableDisableSwitchState == "Disabled") {
-            enableDisable = "Disabled"
-            state.enableDisable = true
+        if (disabledSwitchState == "Disabled") {
+            state.disabled = "Disabled"
+            state.status = "(Disabled)"
         }
-    } else if (!enableDisableSwitchState) {
-        enableDisable = "Enabled"
-        state.enableDisable = true
+    } else if (!disabledSwitchState) {
+        state.disabled = false
+        state.status = "${fanStatus()}"
     } else {
-    enableDisable = "Unknown"
-    state.enableDisable = false
+    state.disabled = false
+    state.status = "${fanStatus()}"
     }
 fanStatus()
 }
 
 def checkPausedOrDisabled() {
-    if (state?.enabledDisabled || state?.paused) { state.pausedOrDisabled = true } else { state.pausedOrDisabled = false }
+    ifTrace("checkPausedOrDisabled")
+    if (state?.disabled || state?.paused) { state.pausedOrDisabled = true } else { state.pausedOrDisabled = false }
+    ifTrace("checkPausedOrDisabled: [state.paused = ${state.paused}] [state.disabled = ${state.disabled}] [${state.pausedOrDisabled}]")
 }
 
 def changeMode(mode) {
+    ifTrace("changeMode")
     ifDebug("Changing Mode to: ${mode}")
 	if (location.mode != mode && location.modes?.find { it.name == mode}) setLocationMode(mode)
 }
 
-def fanStatus() {
-    ifDebug("fanStatus")
-    if (FanSwitch.currentValue("switch") == "on") {
-        if (!state?.paused || !state?.enableDisableSwitch) {
-            state.status = "(On)"
-            updateLabel()
-        } else {
-            log.info "${app.label} is Paused or Disabled"        
-        }
-    }
-    if (FanSwitch.currentValue("switch") == "off")
-    {
-        if (!state?.paused || !state?.enableDisableSwitch) {
-           state.status = "(Off)"
-           updateLabel()
-           } else {
-           log.info "${app.label} is Paused or Disabled"        
-        }
-    }
+// Logging functions
+def getLogLevels() {
+    return [["0":"None"],["1":"Info"],["2":"Debug"],["3":"Trace"]]
 }
 
-// Logging functions
-def disableDebugIn30() {
-    if (isDebug == true) {
-        runIn(1800, debugOff)
-        log.info "Debug logging disabling in 30 minutes."
-    }
-}
-    
-def ifDebug(msg) {
-	if(isDebug == true) {
-        log.debug "${state.displayName}: ${msg}"
-    }
+def infoOff() {
+    app.updateSetting("isInfo", false)
+    log.info "${state.displayName}: Info logging auto disabled."
 }
 
 def debugOff() {
     app.updateSetting("isDebug", false)
-    log.info "${state.displayName} ${appVersion()}: Debug logging auto disabled"
+    log.info "${state.displayName}: Debug logging auto disabled."
 }
 
-def getLogLevels(){
-    return [["0":"None"],["1":"Info"]]
+def traceOff() {
+    app.updateSetting("isTrace", false)
+    log.trace "${state.displayName}: Trace logging auto disabled."
+}
+
+def disableInfoIn30() {
+    if (isInfo == true) {
+        runIn(1800, infoOff)
+        log.info "Info logging disabling in 30 minutes."
+    }
+}
+
+def disableDebugIn30() {
+    if (isDebug == true) {
+        runIn(1800, debugOff)
+        log.debug "Debug logging disabling in 30 minutes."
+    }
+}
+
+def disableTraceIn30() {
+    if (isTrace == true) {
+        runIn(1800, traceOff)
+        log.trace "Trace logging disabling in 30 minutes."
+    }
+}
+
+def ifWarn(msg) {
+    log.warn "${state.displayName}: ${msg}"
 }
 
 def ifInfo(msg) {       
     def logL = 0
     if (ifLevel) logL = ifLevel.toInteger()
-    if (logL == 0) {return}//bail
-    else if (logL >= 1)
-	{
+    if (logL == 1 && isInfo == false) {return}//bail
+    else if (logL > 0) {
 		log.info "${state.displayName}: ${msg}"
 	}
 }
 
-def ifWarn(msg) {
-    log.warn "${state.displayName}}: ${msg}"
+def ifDebug(msg) {
+    def logL = 0
+    if (ifLevel) logL = ifLevel.toInteger()
+    if (logL < 2 && isDebug == false) {return}//bail
+    else if (logL > 1) {
+		log.debug "${state.displayName}: ${msg}"
+    }
 }
 
-def ifTrace(msg) {
-    log.trace "${state.displayName} ${device.label}: ${msg}"
+def ifTrace(msg) {       
+    def logL = 0
+    if (ifLevel) logL = ifLevel.toInteger()
+    if (logL < 3 && isTrace == false) {return}//bail
+    else if (logL > 2) {
+		log.trace "${state.displayName}: ${msg}"
+    }
 }
