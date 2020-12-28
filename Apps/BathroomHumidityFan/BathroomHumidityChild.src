@@ -574,6 +574,7 @@ def TurnOffFanSwitchCheckHumidity() {
                 ifDebug("TurnOffFanSwitchCheckHumidity: Didn't turn off fan because humidity rate is ${state.HumidityChangeRate}")
                 state.AutomaticallyTurnedOn = true
                 state.TurnOffLaterStarted = false
+            }
 		} else {
 			TurnOffFanSwitch()
 		}
@@ -584,8 +585,7 @@ def TurnOffFanSwitch() {
     ifTrace("TurnOffFanSwitch")
     checkPausedOrDisabled()
     if (state.pausedOrDisabled == false) {
-        if (FanSwitch.currentValue("switch") == "on")
-        {
+        if (FanSwitch.currentValue("switch") == "on") {
             ifInfo("TurnOffFanSwitch: Turning the Fan off now")
             FanSwitch.off()
             state.status = "(Off)"
