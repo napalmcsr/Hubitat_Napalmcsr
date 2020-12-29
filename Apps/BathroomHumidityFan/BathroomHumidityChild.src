@@ -389,7 +389,7 @@ def deviceActivationSwitchHandler(evt) {
 void updateLabel() {
     ifTrace("updateLabel")
     ifTrace("updateLabel: fanStatus() = ${fanStatus()}")
-        if (!app.label.contains("<span") && !app.label.contains("Paused") && !app.label.contains("Disabled")) {
+        if (!app.label?.contains("<span") && !app.label?.contains("Paused") && !app.label?.contains("Disabled")) {
         state.displayName = app.label
     }
     ifTrace("updateLabel: [state.status = ${state.status}] [state.paused = ${state.paused}] [state.disabled = ${state.disabled}]")
@@ -532,7 +532,7 @@ def fanStatus() {
     ifTrace("fanStatus")
     ifTrace("fanStatus: [state.status = ${state.status}] [state.paused = ${state.paused}] [state.disabled = ${state.disabled}]")
     ifTrace("fanStatus: [FanSwitch?.currentValue(switch) = ${FanSwitch?.currentValue("switch")}]")
-    if (FanSwitch.currentValue("switch") == "on") {
+    if (FanSwitch?.currentValue("switch") == "on") {
         ifTrace("fanStatus - FanSwitch?.CurrentValue on: [state.paused = ${state?.paused}] [state.disabled = ${state?.disabled}] [state.disabled = ${state?.disabled == ""}])")
         if ((state?.paused == false) && ((state?.disabled == false) || (state?.disabled == ""))) {
             ifTrace("fanStatus: [state.paused = ${state?.paused}] [state.disabled = ${state?.disabled}] [state.disabled = ${state?.disabled == ""}])")
@@ -544,7 +544,7 @@ def fanStatus() {
             ifTrace("fanStatus - FanSwitch?.CurrentValue on: [state.paused = ${state?.paused}] [state.disabled = ${state?.disabled}]")
         }
     }
-    if (FanSwitch.currentValue("switch") == "off") {
+    if (FanSwitch?.currentValue("switch") == "off") {
         ifTrace("fanStatus - FanSwitch?.CurrentValue off: [state.paused = ${state?.paused}] [state.disabled = ${state?.disabled}] [state.disabled = ${state?.disabled == false}]")
         if ((state?.paused == false) && (state?.disabled == false)) {
            state.status = "(Off)"
