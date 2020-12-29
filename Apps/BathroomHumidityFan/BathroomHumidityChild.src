@@ -531,21 +531,21 @@ private timeIntervalLabel() {
 def fanStatus() {
     ifTrace("fanStatus")
     ifTrace("fanStatus: [state.status = ${state.status}] [state.paused = ${state.paused}] [state.disabled = ${state.disabled}]")
-    ifTrace("fanStatus: [FanSwitch.currentValue(switch) = ${FanSwitch.currentValue("switch")}]")
+    ifTrace("fanStatus: [FanSwitch?.currentValue(switch) = ${FanSwitch?.currentValue("switch")}]")
     if (FanSwitch.currentValue("switch") == "on") {
-        ifTrace("fanStatus - FanSwitch.CurrentValue on: [state.paused = ${state?.paused}] [state.disabled = ${state?.disabled}] [state.disabled = ${state?.disabled == ""}])")
+        ifTrace("fanStatus - FanSwitch?.CurrentValue on: [state.paused = ${state?.paused}] [state.disabled = ${state?.disabled}] [state.disabled = ${state?.disabled == ""}])")
         if ((state?.paused == false) && ((state?.disabled == false) || (state?.disabled == ""))) {
-            ifTrace("fanStatus548: [state.paused = ${state?.paused}] [state.disabled = ${state?.disabled}] [state.disabled = ${state?.disabled == ""}])")
+            ifTrace("fanStatus: [state.paused = ${state?.paused}] [state.disabled = ${state?.disabled}] [state.disabled = ${state?.disabled == ""}])")
             state.status = "(On)"
             ifDebug("fanStatus - On: state.status = ${state.status}")
             if (state.status == "(On)") return "(On)"
         } else {
             log.info "${app.label} is Paused or Disabled"
-            ifTrace("fanStatus - FanSwitch.CurrentValue on: [state.paused = ${state?.paused}] [state.disabled = ${state?.disabled}]")
+            ifTrace("fanStatus - FanSwitch?.CurrentValue on: [state.paused = ${state?.paused}] [state.disabled = ${state?.disabled}]")
         }
     }
     if (FanSwitch.currentValue("switch") == "off") {
-        ifTrace("fanStatus - FanSwitch.CurrentValue off: [state.paused = ${state?.paused}] [state.disabled = ${state?.disabled}] [state.disabled = ${state?.disabled == false}]")
+        ifTrace("fanStatus - FanSwitch?.CurrentValue off: [state.paused = ${state?.paused}] [state.disabled = ${state?.disabled}] [state.disabled = ${state?.disabled == false}]")
         if ((state?.paused == false) && (state?.disabled == false)) {
            state.status = "(Off)"
            ifDebug("fanStatus - Off: state.status = ${state.status}")
