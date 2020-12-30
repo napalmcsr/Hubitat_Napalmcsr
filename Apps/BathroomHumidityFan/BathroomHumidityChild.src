@@ -12,7 +12,7 @@
 */
 
 def setVersion() {
-    state.version = "1.0.8" // Version number of this app
+    state.version = "1.0.9" // Version number of this app
     state.InternalName = "BathroomHumidityFan"   // this is the name used in the JSON file for this app
 }
 
@@ -220,7 +220,6 @@ def HumidityHandler(evt) {
         }
     }
     if (state.currentHumidity)
-    ifTrace("state.currentHumidity == ${state.currentHumidity}")
 	{
 		state.lastHumidity = state.currentHumidity
         ifTrace("state.lastHumidity == ${state.lastHumidity} state.currentHumidity == ${state.currentHumidity}")
@@ -281,17 +280,17 @@ def HumidityHandler(evt) {
 		ifDebug("HumidityHandler: new state.StartingHumidity = ${state?.StartingHumidity}")
 		ifDebug("HumidityHandler: new state.HighestHumidity = ${state?.HighestHumidity}")
 		ifDebug("HumidityHandler: new state.targetHumidity = ${state?.targetHumidity}")
-	}
-    else if ( ((state.currentHumidity)>=(state.threshold)) && (FanSwitch.currentValue("switch") == "off") && !modeStop) {
-        state.AutomaticallyTurnedOn = true
-        state.TurnOffLaterStarted = false
-        state.AutomaticallyTurnedOnAt = new Date().format("yyyy-MM-dd HH:mm")
-        ifInfo("Turn On Fan due to humidity increase")
-        ifInfo("${HumiditySensor} humidity exceeded: ${state?.threshold}, current humidity: ${state?.currentHumidity}")
-        ifInfo("Waiting to drop below ${state?.thresholdOff} to start timed off sequence")
-        FanSwitch.on()
-        state.status = "(On)"
-        updateLabel()
+//	}
+//    else if ( ((state?.currentHumidity)>=(state?.threshold)) && (FanSwitch?.currentValue("switch") == "off") && !modeStop) {
+//        state.AutomaticallyTurnedOn = true
+//        state.TurnOffLaterStarted = false
+//        state.AutomaticallyTurnedOnAt = new Date().format("yyyy-MM-dd HH:mm")
+//        ifInfo("Turn On Fan due to humidity increase")
+//        ifInfo("${HumiditySensor} humidity exceeded: ${state?.threshold}, current humidity: ${state?.currentHumidity}")
+//        ifInfo("Waiting to drop below ${state?.thresholdOff} to start timed off sequence")
+//        FanSwitch.on()
+//        state.status = "(On)"
+//        updateLabel()
     //turn off the fan when humidity returns to normal and it was kicked on by the humidity sensor
     } else if((state.AutomaticallyTurnedOn || ManualControlMode == "By Humidity")&& !state.TurnOffLaterStarted) {    
         if(state.currentHumidity<=state.targetHumidity) {
