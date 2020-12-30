@@ -12,7 +12,7 @@
 */
 
 def setVersion() {
-    state.version = "1.0.7" // Version number of this app
+    state.version = "1.0.8" // Version number of this app
     state.InternalName = "BathroomHumidityFan"   // this is the name used in the JSON file for this app
 }
 
@@ -203,6 +203,7 @@ def HumidityHandler(evt) {
     state.OverThreshold = CheckThreshold(evt)
 	state.lastHumidityDate = state.currentHumidityDate
     if (CompareHumiditySensor == null) {
+        ifTrace("CompareHumiditySensor == null")
 	    state.currentHumidity = Double.parseDouble(evt.value.replace("%", ""))
         ifDebug("Current humidity update: ${state?.currentHumidity} from: ${evt.device}")
     }
@@ -218,9 +219,11 @@ def HumidityHandler(evt) {
             ifDebug("Current humidity update: ${state?.currentHumidity} from: ${evt.device}")
         }
     }
-    if (state?.currentHumidity)
+    if (state.currentHumidity)
+    ifTrace("state.currentHumidity == ${state.currentHumidity}")
 	{
 		state.lastHumidity = state.currentHumidity
+        ifTrace("state.lastHumidity == ${state.lastHumidity} state.currentHumidity == ${state.currentHumidity}")
 	}
 	else
 	{
@@ -234,6 +237,7 @@ def HumidityHandler(evt) {
 	{
 		state.HighestHumidity = 100
 	}
+    state.currentHumidity = Double.parseDouble(evt.value.replace("%", ""))
 	state.currentHumidityDate = evt.date.time
 	state.HumidityChangeRate = state.currentHumidity - state.lastHumidity
 	if(state.currentHumidity>state.HighestHumidity)	{
