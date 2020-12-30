@@ -1,7 +1,7 @@
 {
   "packageName": "Bathroom Humidity Fan",
   "author": "Craig Romei",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "minimumHEVersion": "2.2.4",
   "dateReleased": "2020-12-25",
   "apps": [
