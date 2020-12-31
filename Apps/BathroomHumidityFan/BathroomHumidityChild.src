@@ -133,13 +133,13 @@ def mainPage() {
             if (CompareHumiditySensor != null) {defaultHumidityThresholdValue = CompareHumiditySensor.currentValue("humidity")}
 			input "HumidityIncreaseRate", "number", title: "Humidity Increase Rate :", required: true, defaultValue: 2
 			input "HumidityThreshold", "number", title: "Humidity Threshold (%):", required: false, defaultValue: defaultHumidityThresholdValue
+            input "HumidityIncreasedBy", "number", title: "When humidity rises above or equal to this amount plus the baseline sensor humidity turn on the fan: ", required: false, defaultValue: 9
 			input "FanOnDelay", "number", title: "Delay turning fan on (Minutes):", required: false, defaultValue: 0
 		}
 		section("Fan Deactivation") {
 			input "HumidityDropTimeout", "number", title: "How long after the humidity starts to drop should the fan turn off (minutes):", required: true, defaultValue:  10
 			input "HumidityDropLimit", "number", title: "What percentage above the starting humidity before triggering the turn off delay:", required: true, defaultValue:  25
             input "MaxRunTime", "number", title: "Maximum time(minutes) for Fan to run when automatically turned on:", required: false, defaultValue: 120
-            input "HumidityIncreasedBy", "number", title: "When humidity rises above or equal to this amount plus the baseline sensor humidity turn on the fan: ", required: false, defaultValue: 9
 		}
 		section("Manual Activation") {
 			input "ManualControlMode", "enum", title: "When should the fan turn off when turned on manually?", required: true, options: ["Manually", "By Humidity", "After Set Time"], defaultValue: "After Set Time"
