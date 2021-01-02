@@ -56,11 +56,11 @@ def mainPage() {
         input "HumiditySensor", "capability.relativeHumidityMeasurement", title: "Humidity Sensor: ${humiditySensorStatus}", required: true, submitOnChange:true
         input "CompareHumiditySensor", "capability.relativeHumidityMeasurement", title: "Compare to this baseline Humidity Sensor: ${compareHumiditySensorStatus}", required: false, submitOnChange:true
         paragraph "NOTE: The humidity sensor you select will need to report about 5 min or less."
-        input "CompareHumiditySensorOffset", "number", title: "Comparison Offset Trigger", required: false, submitOnChange:true
-        paragraph "How much deviation from the comparison sensor do you want to trigger the fan? This will set the comparison sensor to be the threshold plus this offset."
-        
         input "refresh", "bool", title: "Click here to refresh the device status", submitOnChange:true
         app.updateSetting("refresh",[value:"false",type:"bool"])
+        input "CompareHumiditySensorOffset", "number", title: "Comparison Offset Trigger", required: false, submitOnChange:true
+        paragraph "How much deviation from the comparison sensor do you want to trigger the fan? This will set the comparison sensor to be the threshold plus this offset."
+
     }
 	section("<b><u>Fan Activation</u></b>"){
         input "HumidityIncreaseRate", "number", title: "Humidity Increase Rate:", required: true, defaultValue: 2
