@@ -13,7 +13,7 @@
 import groovy.transform.Field
 
 def setVersion() {
-    state.version = "1.1.11" // Version number of this app
+    state.version = "1.1.12" // Version number of this app
     state.InternalName = "BathroomHumidityFan"   // this is the name used in the JSON file for this app
 }
 
@@ -95,7 +95,7 @@ def mainPage() {
         input "isInfo", "bool", title: "Enable Info logging for 30 minutes", submitOnChange: false, defaultValue: false
         input "isDebug", "bool", title: "Enable debug logging for 30 minutes", submitOnChange: false, defaultValue: false
         input "isTrace", "bool", title: "Enable Trace logging for 30 minutes", submitOnChange: false, defaultValue: false
-        input "ifLevel","enum", title: "IDE logging level",required: true, options: getLogLevels(), defaultValue : "1"
+        input "ifLevel","enum", title: "IDE logging level",required: true, options: getLogLevels, defaultValue : "1"
         paragraph "NOTE: IDE logging level overrides the temporary logging selections."
     }
     section(title: "Only Run When:", hideable: true, hidden: hideOptionsSection()) {
@@ -186,7 +186,7 @@ def diagnosticHandler(evt) {
 
 def modeChangeHandler(evt) {
 	ifTrace("modeChangeHandler")
-    if ((getAllOk() == false) || (state?.pausedOrDisabled == true)) {
+    if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
         ifDebug("modeChangeHandler: Entered a disabled mode, turning off the Fan")
 	    TurnOffFanSwitch()
         updateLabel()
@@ -196,7 +196,7 @@ def modeChangeHandler(evt) {
 // Humidity Handler Methods
 def HumidityHandler(evt) {
 	ifInfo("HumidityHandler: Running Humidity Check")
-    if ((getAllOk() == false) || (state?.pausedOrDisabled == true)) {
+    if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
         ifTrace("HumidityHandler: getAllOk = ${getAllOk()}")
     } else {
 	    humidityHandlerVariablesBefore()
@@ -243,7 +243,7 @@ def compareHumidityHandler(evt) {
 
 def FanSwitchHandler(evt) {
     ifTrace("FanSwitchHandler")
-    if ((getAllOk() == false) || (state?.pausedOrDisabled == true)) {
+    if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
     ifTrace("FanSwitchHandler: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else {
     updateLabel()
@@ -276,7 +276,7 @@ def FanSwitchHandler(evt) {
 
 def disabledHandler(evt) {
     ifTrace("disabledHandler")
-    if (getAllOk() == false) {
+    if (getAllOk == false) {
     ifTrace("TurnOffFanSwitchManual: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
         } else {
         if(disabledSwitch) {
@@ -311,7 +311,7 @@ def disabledHandler(evt) {
 
 def deviceActivationSwitchHandler(evt) {
     ifTrace("deviceActivationSwitchHandler")
-    if ((getAllOk() == false) || (state?.pausedOrDisabled == true)) {
+    if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
     ifTrace("deviceActivationSwitchHandler: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else {
         updateLabel()
@@ -336,7 +336,7 @@ def deviceActivationSwitchHandler(evt) {
 // Application functions
 def humidityRateOfChangeOn() {
     ifTrace("humidityRateOfChangeOn")
-    if ((getAllOk() == false) || (state?.pausedOrDisabled == true)) {
+    if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
     ifTrace("humidityRateOfChangeOff: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else {
         ifTrace("HumidityHandler: modeOk = ${modeOk}")
@@ -362,7 +362,7 @@ def humidityRateOfChangeOn() {
 
 def humidityRateOfChangeOff() {
     ifTrace("humidityRateOfChangeOff")
-    if ((getAllOk() == false) || (state?.pausedOrDisabled == true)) {
+    if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
     ifTrace("humidityRateOfChangeOff: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else {
         if ((state?.AutomaticallyTurnedOn || settings.manualControlModeOptions?.contains("1")) && !state.TurnOffLaterStarted) {
@@ -386,7 +386,7 @@ def humidityRateOfChangeOff() {
 
 def compareHumidityRateOfChangeOn() {
     ifTrace("compareHumidityRateOfChangeOn")
-    if ((getAllOk() == false) || (state?.pausedOrDisabled == true)) {
+    if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
     ifTrace("compareHumidityRateOfChangeOn: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else {
     ifTrace("compareHumidityRateOfChangeOn: modeOk = ${modeOk}")
@@ -412,7 +412,7 @@ def compareHumidityRateOfChangeOn() {
 
 def compareHumidityRateOfChangeOff() {
     ifTrace("compareHumidityRateOfChangeOff")
-    if ((getAllOk() == false) || (state?.pausedOrDisabled == true)) {
+    if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
     ifTrace("compareHumidityRateOfChangeOff: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else {
         if ((state?.AutomaticallyTurnedOn || settings.manualControlModeOptions?.contains("1")) && !state.TurnOffLaterStarted) {
@@ -436,7 +436,7 @@ def compareHumidityRateOfChangeOff() {
 
 def TurnOffFanSwitchMaxTime() {
     ifTrace("TurnOffFanSwitchMaxTime")
-    if ((getAllOk() == false) || (state?.pausedOrDisabled == true)) {
+    if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
     ifTrace("TurnOffFanSwitchMaxTime: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else {
         updateLabel()
@@ -447,7 +447,7 @@ def TurnOffFanSwitchMaxTime() {
 
 def TurnOffFanSwitchCheckHumidity() {
     ifTrace("TurnOffFanSwitchCheckHumidity")
-    if ((getAllOk() == false) || (state?.pausedOrDisabled == true)) {
+    if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
     ifTrace("TurnOffFanSwitchCheckHumidity: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else {
         updateLabel()
@@ -467,7 +467,7 @@ def TurnOffFanSwitchCheckHumidity() {
 
 def TurnOffFanSwitch() {
     ifTrace("TurnOffFanSwitch")
-    if ((getAllOk() == false) || (state?.pausedOrDisabled == true)) {
+    if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
     ifTrace("urnOffFanSwitch: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else {
         updateLabel()
@@ -482,7 +482,7 @@ def TurnOffFanSwitch() {
 
 def TurnOffFanSwitchManual() {
     ifTrace("TurnOffFanSwitchManual")
-    if ((getAllOk() == false) || (state?.pausedOrDisabled == true)) {
+    if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
     ifTrace("TurnOffFanSwitchManual: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else {
         updateLabel()
@@ -502,7 +502,7 @@ def TurnOffFanSwitchManual() {
 
 def TurnOnFan() {
     ifTrace("TurnOnFan")
-    if ((getAllOk() == false) || (state?.pausedOrDisabled == true)) {
+    if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
     ifTrace("TurnOffFanSwitchManual: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else {
         FanSwitch.on()
@@ -555,7 +555,7 @@ def humidityHandlerVariablesAfter() {
 
 //Label Updates
 void updateLabel() {
-    if (getAllOk() != true) {
+    if (getAllOk == false) {
         ifTrace("updateLabel: getAllOk = ${getAllOk()}")
         state.status = "(Disabled by Time, Day, or Mode)"
         appStatus = "<span style=color:brown>(Disabled by Time, Day, or Mode)</span>"
@@ -715,9 +715,12 @@ private timeIntervalLabel() {
 }
 
 // Logging functions
-def getLogLevels() {
-    return [["0":"None"],["1":"Info"],["2":"Debug"],["3":"Trace"]]
-}
+@Field static List<Map<String,String>> getLogLevels = [
+    ["0": "None"],
+    ["1": "Info"],
+    ["2": "Debug"],
+    ["3": "Trace"]
+]
 
 def turnOffLoggingTogglesIn30() {
 if (!isDebug) {
