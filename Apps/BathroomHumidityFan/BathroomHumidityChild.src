@@ -43,10 +43,11 @@ def mainPage() {
     dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0) {
     ifTrace("mainPage")
     turnOffLoggingTogglesIn30()
-
+    setPauseButtonName()
+    diagnosticHandler()
+        
     section("") {
-        setPauseButtonName()
-      input name: "Pause", type: "button", title: state.pauseButtonName, submitOnChange:true
+        input name: "Pause", type: "button", title: state.pauseButtonName, submitOnChange:true
     }
     section("") {
         if ((state.thisName == null) || (state.thisName == "null <span style=color:white> </span>")) {state.thisName = "Enter a name for this app."}
@@ -84,7 +85,7 @@ def mainPage() {
     }
     section("<b><u>Manual Activation</b></u>") {
         input "ManualControlMode", "enum", title: "When should the fan turn off when turned on manually?", submitOnChange:true, required: true, options: manualControlModeOptions, defaultValue: 2
-        if ((settings.ManualControlMode?.contains("1")) || (settings.ManualControlMode?.contains("2")) || (settings.ManualControlMode?.contains("3"))) {
+        if (settings.ManualControlMode?.contains("2")) {
             input "ManualOffMinutes", "number", title: "How many minutes until the fan is auto-turned-off?", submitOnChange:true, required: false, defaultValue: 20}
     }
     section(title: "Additional Features:", hideable: true, hidden: hideOptionsSection()) {
@@ -151,8 +152,7 @@ def initialize() {
     subscribe(disabledSwitch, "switch", disabledHandler)
     subscribe(FanSwitch, "switch", diagnosticHandler)
     subscribe(HumiditySensor, "humidity", diagnosticHandler)
-    if ((settings.humidityResponseMethod?.contains("3")) || (settings.humidityResponseMethod?.contains("4"))) {
-        subscribe(CompareHumiditySensor, "humidity", diagnosticHandler)} else {unsubscribe(CompareHumiditySensor)}
+    subscribe(CompareHumiditySensor, "humidity", diagnosticHandler)
     if ((settings.humidityResponseMethod?.contains("3")) || (settings.humidityResponseMethod?.contains("4"))) {
         subscribe(CompareHumiditySensor, "humidity", compareHumidityHandler)} else {unsubscribe(compareHumidtySensor)}
     subscribe(FanSwitch, "switch", FanSwitchHandler)
@@ -594,20 +594,34 @@ def appButtonHandler(btn) {
     ifTrace("appButtonHandler")
     if (btn == "Disabled by Switch") {
         state.disabled = false
+        unschedule()
+        unsubscribe()
+        subscribe(disabledSwitch, "switch", disabledHandler)
+        subscribe(FanSwitch, "switch", diagnosticHandler)
+        subscribe(HumiditySensor, "humidity", diagnosticHandler)
+        subscribe(CompareHumiditySensor, "humidity", diagnosticHandler)
     } else if (btn == "Resume") {
         state.disabled = false
         state.paused = !state.paused
+        subscribe(disabledSwitch, "switch", disabledHandler)
+        subscribe(FanSwitch, "switch", diagnosticHandler)
+        subscribe(HumiditySensor, "humidity", diagnosticHandler)
+        subscribe(CompareHumiditySensor, "humidity", diagnosticHandler)
     } else if (btn == "Pause") {
         state.paused = !state.paused
         if (state?.paused) {
             unschedule()
             unsubscribe()
+            subscribe(disabledSwitch, "switch", disabledHandler)
+            subscribe(FanSwitch, "switch", diagnosticHandler)
+            subscribe(HumiditySensor, "humidity", diagnosticHandler)
+            subscribe(CompareHumiditySensor, "humidity", diagnosticHandler)
         } else {
             initialize()
             state.pausedOrDisabled = false
             if (FanSwitch?.currentValue("switch") == "on") {
                 ifTrace("appButtonHandler: App was enabled or unpaused and fan was on. Turning off the fan.")
-                TurnOffFan()
+                TurnOffFanSwitch()
             }
         }
     }
@@ -620,12 +634,18 @@ def setPauseButtonName() {
         unsubscribe()
         unschedule()
         subscribe(disabledSwitch, "switch", disabledHandler)
+        subscribe(FanSwitch, "switch", diagnosticHandler)
+        subscribe(HumiditySensor, "humidity", diagnosticHandler)
+        subscribe(CompareHumiditySensor, "humidity", diagnosticHandler)
         updateLabel()
     } else if (state?.paused == true) {
         state.pauseButtonName = "Resume"
         unsubscribe()
         unschedule()
         subscribe(disabledSwitch, "switch", disabledHandler)
+        subscribe(FanSwitch, "switch", diagnosticHandler)
+        subscribe(HumiditySensor, "humidity", diagnosticHandler)
+        subscribe(CompareHumiditySensor, "humidity", diagnosticHandler)
         updateLabel()
     } else {
         state.pauseButtonName = "Pause"
