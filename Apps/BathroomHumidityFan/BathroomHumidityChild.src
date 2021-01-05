@@ -13,7 +13,7 @@
 import groovy.transform.Field
 
 def setVersion() {
-    state.version = "1.1.7" // Version number of this app
+    state.version = "1.1.8" // Version number of this app
     state.InternalName = "BathroomHumidityFan"   // this is the name used in the JSON file for this app
 }
 
@@ -43,9 +43,9 @@ def mainPage() {
     dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0) {
     ifTrace("mainPage")
     turnOffLoggingTogglesIn30()
-        
-    setPauseButtonName()
+
     section("") {
+        setPauseButtonName()
       input name: "Pause", type: "button", title: state.pauseButtonName, submitOnChange:true
     }
     section("") {
