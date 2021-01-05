@@ -13,7 +13,7 @@
 import groovy.transform.Field
 
 def setVersion() {
-    state.version = "1.1.9" // Version number of this app
+    state.version = "1.1.11" // Version number of this app
     state.InternalName = "BathroomHumidityFan"   // this is the name used in the JSON file for this app
 }
 
@@ -57,7 +57,7 @@ def mainPage() {
     }
 	section("") {
         input "refresh", "bool", title: "Click here to refresh the device status", submitOnChange:true
-        input "FanSwitch", "capability.switch", title: "Fan: ${fanSwitchStatus}", required: true, submitOnChange:true
+        input "FanSwitch", "capability.switch", title: "${fanSwitchStatus}", required: true, submitOnChange:true
         input "HumiditySensor", "capability.relativeHumidityMeasurement", title: "${humiditySensorStatus}", required: true, submitOnChange:true
         paragraph "NOTE: The humidity sensor you select will need to report about 5 min or less."
         input "humidityResponseMethod", "enum", title: "Humidity Response Method", options: humidityResponseMethodOptions, defaultValue: 1, required: true, multiple: false, submitOnChange:true
@@ -166,17 +166,9 @@ def initialize() {
 // Device Handlers
 def diagnosticHandler(evt) {
     ifTrace("diagnosticHandler")
-    if (FanSwitch?.currentValue("switch") != null) {
-        fanSwitchStatus = FanSwitch.currentValue("switch")
-        ifTrace("diagnosticHandler: FanSwitch.currentValue = ${FanSwitch.currentValue("switch")}")
-    } else if (FanSwitch?.latestValue("switch") != null) {
-        fanSwitchStatus = FanSwitch.latestValue("switch")
-        ifTrace("diagnosticHandler: FanSwtich.latestValue = ${FanSwitch.latestValue("switch")}")
-    } else {
-        fanSwitchStatus = " "
-        ifTrace("diagnosticHandler: fanSwitchStatus = ${fanSwitchStatus}")
-    }
-    ifTrace("${HumiditySensor?.currentValue("battery")}")
+    if (FanSwitch?.currentValue("switch") != null) {fanSwitchStatus = "[ Fan: ${FanSwitch.currentValue("switch")} ]"
+    } else if (FanSwitch?.latestValue("switch") != null) {fanSwitchStatus = "Fan: ${FanSwitch.latestValue("switch")}"} else {fanSwitchStatus = " "}
+
     if ((HumiditySensor?.currentValue("battery") != null) && (HumiditySensor?.currentValue("humidity") != null)) {humiditySensorStatus = "[ Humidity: ${HumiditySensor.currentValue("humidity")} ]  [ Battery: ${HumiditySensor.currentValue("battery")} ]"
     } else if (HumiditySensor?.currentValue("humidity") != null) {humiditySensorStatus = "[Humidity: ${HumiditySensor.currentValue("humidity")}]"
     } else if (HumiditySensor?.latestValue("humidity") != null) {humiditySensorStatus = "[Humidity: ${HumiditySensor.latestValue("humidity")}]"
