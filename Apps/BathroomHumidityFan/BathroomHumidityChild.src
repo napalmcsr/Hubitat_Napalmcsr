@@ -253,7 +253,7 @@ def FanSwitchHandler(evt) {
     } else {
     updateLabel()
     if (evt.value == "on") {
-        if (!state?.AutomaticallyTurnedOn && (ManualControlMode == "After Set Time") && ManualOffMinutes) {
+        if (!state?.AutomaticallyTurnedOn && (settings.manualControlModeOptions?.contains("2")) && ManualOffMinutes) {
             if (ManualOffMinutes == 0) {
                 ifDebug("FanSwitchHandler: Turning the Fan off now")
                 TurnOffFanSwitch()
