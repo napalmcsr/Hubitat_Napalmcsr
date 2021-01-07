@@ -7,7 +7,7 @@
  */
 
 def setVersion(){
-	state.version = "1.1.19" // Version number of this app
+	state.version = "1.1.20" // Version number of this app
 	state.InternalName = "BathroomHumidityFan"   // this is the name used in the JSON file for this app
 }
 
