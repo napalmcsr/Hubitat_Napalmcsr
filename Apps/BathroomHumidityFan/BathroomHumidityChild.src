@@ -362,10 +362,10 @@ def rateOfChangeOff() {
             state.turnOffLaterStarted = false
             ifDebug("rateOfChangeOff: Turning off the fan. Humidity has returned to normal and it was turned on manually.")
         } else {
-            ifDebug ("rateOfChangeOff: Turn Fan off in ${(60 * humidityDropTimeout.toInteger())} minutes.")
+            ifDebug ("rateOfChangeOff: Turn Fan off in ${(humidityDropTimeout.toInteger())} minutes.")
             runIn(60 * humidityDropTimeout.toInteger(), turnOffFan)
             state.turnOffLaterStarted = true
-            ifDebug("Turning off the fan in ${(60 * humidityDropTimeout.toInteger())} minutes.")
+            ifDebug("Turning off the fan in ${(humidityDropTimeout.toInteger())} minutes.")
         }
     } else if (settings.manualControlModeOptions?.contains("1") && (state?.currentHumidity <= state?.targetHumidity) && !state?.automaticallyTurnedOn && (fanSwitch?.currentValue("switch") == "on") && !state.turnOffLaterStarted) {
         if (humidityDropTimeout == 0) {
@@ -482,7 +482,7 @@ def compareRateOfChangeOff() {
                 state.turnOffLaterStarted = false
                 ifDebug("compareRateOfChangeOff: Turning off the fan. Humidity has returned to normal and it was kicked on by the humidity sensor.")
             } else {
-                ifDebug ("compareRateOfChangeOff: Turn Fan off in ${(60 * humidityDropTimeout.toInteger())} minutes.")
+                ifDebug ("compareRateOfChangeOff: Turn Fan off in ${(humidityDropTimeout.toInteger())} minutes.")
                 runIn(60 * humidityDropTimeout.toInteger(), turnOffFan)
                 ifDebug("Turning off the fan in ${humidityDropTimeout.toInteger()} minutes.")
                 ifTrace("compareRateOfChangeOff: state.turnOffLaterStarted = ${state.turnOffLaterStarted}")
@@ -494,7 +494,7 @@ def compareRateOfChangeOff() {
                 state.turnOffLaterStarted = false
                 ifDebug("compareRateOfChangeOff: Turning off the fan. Humidity has returned to normal and it was turned on manually.")
             } else {
-                ifDebug ("compareRateOfChangeOff: Turn Fan off in ${(60 * humidityDropTimeout.toInteger())} minutes.")
+                ifDebug ("compareRateOfChangeOff: Turn Fan off in ${(humidityDropTimeout.toInteger())} minutes.")
                 runIn(60 * humidityDropTimeout.toInteger(), turnOffFan)
                 ifDebug("Turning off the fan in ${humidityDropTimeout.toInteger()} minutes.")
                 ifTrace("compareRateOfChangeOff: state.turnOffLaterStarted = ${state.turnOffLaterStarted}")
@@ -563,7 +563,7 @@ def overComparisonOff() {
 				state.turnOffLaterStarted = false
                 ifDebug("overComparisonOff: Turning off the fan. Humidity has returned to normal and it was kicked on by the humidity sensor.")
             } else {
-                ifDebug ("overComparisonOff: Turn Fan off in ${(60 * humidityDropTimeout.toInteger())} minutes.")
+                ifDebug ("overComparisonOff: Turn Fan off in ${(humidityDropTimeout.toInteger())} minutes.")
                 runIn(60 * humidityDropTimeout.toInteger(), turnOffFan)
                 ifDebug("Turning off the fan in ${humidityDropTimeout.toInteger()} minutes.")
             }
@@ -573,7 +573,7 @@ def overComparisonOff() {
 				state.turnOffLaterStarted = false
                 ifDebug("overComparisonOff: Turning off the fan. Humidity has returned to normal and it was kicked on by the humidity sensor.")
             } else {
-                ifDebug ("overComparisonOff: Turn Fan off in ${(60 * humidityDropTimeout.toInteger())} minutes.")
+                ifDebug ("overComparisonOff: Turn Fan off in ${(humidityDropTimeout.toInteger())} minutes.")
                 runIn(60 * humidityDropTimeout.toInteger(), turnOffFan)
                 ifDebug("Turning off the fan in ${humidityDropTimeout.toInteger()} minutes.")
             }
