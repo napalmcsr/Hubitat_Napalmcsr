@@ -57,7 +57,7 @@ def mainPage() {
     }
 	section("") {
         input "refresh", "bool", title: "Click here to refresh the device status", submitOnChange:true
-        input "fanSwitch", "capability.switch", title: "${fanSwitchStatus}", required: true, submitOnChange:true
+        input "fanSwitch", "capability.switch", title: "${state.fanSwitchStatus}", required: true, submitOnChange:true
         input "humiditySensor", "capability.relativeHumidityMeasurement", title: "${state.humiditySensorStatus}", required: true, submitOnChange:true
         paragraph "NOTE: The humidity sensor you select will need to report about 5 min or less."
         input "humidityResponseMethod", "enum", title: "Humidity Response Method", options: humidityResponseMethodOptions, defaultValue: 1, required: true, multiple: true, submitOnChange:true
@@ -176,7 +176,7 @@ def initialize() {
 def diagnosticHandler(evt) {
     ifTrace("diagnosticHandler")
     if (fanSwitch?.currentValue("switch") != null) {state.fanSwitchStatus = "[ Fan: ${fanSwitch.currentValue("switch")} ]"
-    } else if (fanSwitch?.latestValue("switch") != null) {state.fanSwitchStatus = "Fan: ${fanSwitch.latestValue("switch")}"} else {fanSwitchStatus = "Fan"}
+    } else if (fanSwitch?.latestValue("switch") != null) {state.fanSwitchStatus = "Fan: ${fanSwitch.latestValue("switch")}"} else {state.fanSwitchStatus = "Fan"}
 
     if ((humiditySensor?.currentValue("battery") != null) && (humiditySensor?.currentValue("humidity") != null)) {state.humiditySensorStatus = "[ Humidity: ${humiditySensor.currentValue("humidity")} ]  [ Battery: ${humiditySensor.currentValue("battery")} ]"
     } else if (humiditySensor?.currentValue("humidity") != null) {state.humiditySensorStatus = "[Humidity: ${humiditySensor.currentValue("humidity")}]"
@@ -216,15 +216,15 @@ def humidityHandler(evt) {
         state.overThreshold = checkThreshold(evt)
 	    humidityHandlerVariablesAfter()
 	    // Humidity On Checks
-        if (settings.humidityResponseMethod?.contains("1") == true) {rateOfChangeOn()}
-        if (settings.humidityResponseMethod?.contains("2") == true) {overFixedThresholdOn()}
-        if (settings.humidityResponseMethod?.contains("3") == true) {compareRateOfChangeOn()}
-        if (settings.humidityResponseMethod?.contains("4") == true) {overComparisonOn()}
+        if (settings.humidityResponseMethod?.contains("1")) {rateOfChangeOn()}
+        if (settings.humidityResponseMethod?.contains("2")) {overFixedThresholdOn()}
+        if (settings.humidityResponseMethod?.contains("3")) {compareRateOfChangeOn()}
+        if (settings.humidityResponseMethod?.contains("4")) {overComparisonOn()}
 	    // Humidity Off Checks
-        if (settings.humidityResponseMethod?.contains("1") == true) {rateOfChangeOff()}
-        if (settings.humidityResponseMethod?.contains("2") == true) {overFixedThresholdOff()}
-        if (settings.humidityResponseMethod?.contains("3") == true) {compareRateOfChangeOff()}
-        if (settings.humidityResponseMethod?.contains("4") == true) {overComparisonOff()}
+        if (settings.humidityResponseMethod?.contains("1")) {rateOfChangeOff()}
+        if (settings.humidityResponseMethod?.contains("2")) {overFixedThresholdOff()}
+        if (settings.humidityResponseMethod?.contains("3")) {compareRateOfChangeOff()}
+        if (settings.humidityResponseMethod?.contains("4")) {overComparisonOff()}
 }
 
 // Event Handlers
