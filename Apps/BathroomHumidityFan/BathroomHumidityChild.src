@@ -374,7 +374,7 @@ def rateOfChangeOff() {
             state.turnOffLaterStarted = false
             ifDebug("rateOfChangeOff: Turning off the fan. Humidity has returned to normal and it was kicked on by the humidity sensor.")
         } else {
-            ifDebug ("rateOfChangeOff: Turn Fan off in ${(60 * humidityDropTimeout.toInteger())} minutes.")
+            ifDebug ("rateOfChangeOff: Turn Fan off in ${(humidityDropTimeout.toInteger())} minutes.")
             runIn(60 * humidityDropTimeout.toInteger(), turnOffFan)
             state.turnOffLaterStarted = true
             ifDebug("Turning off the fan in ${humidityDropTimeout.toInteger()} minutes.")
@@ -417,7 +417,7 @@ def overFixedThresholdOff() {
             state.turnOffLaterStarted = false
             ifDebug("overFixedThresholdOff: Turning off the fan. Humidity has returned to normal and it was kicked on by the humidity sensor.")
         } else {
-            ifTrace ("overFixedThresholdOff: Turn Fan off in ${(60 * humidityDropTimeout.toInteger())} minutes.")
+            ifTrace ("overFixedThresholdOff: Turn Fan off in ${(humidityDropTimeout.toInteger())} minutes.")
             runIn(60 * humidityDropTimeout.toInteger(), turnOffFan)
             state.turnOffLaterStarted = true
             ifDebug("Turning off the fan in ${humidityDropTimeout.toInteger()} minutes.")
@@ -430,7 +430,7 @@ def overFixedThresholdOff() {
             state.turnOffLaterStarted = false
             ifDebug("overFixedThresholdOff: Turning off the fan. Humidity has returned to normal and it was turned on manually.")
         } else {
-            ifTrace ("overFixedThresholdOff: Turn Fan off in ${(60 * humidityDropTimeout.toInteger())} minutes.")
+            ifTrace ("overFixedThresholdOff: Turn Fan off in ${(humidityDropTimeout.toInteger())} minutes.")
             runIn(60 * humidityDropTimeout.toInteger(), turnOffFan)
             state.turnOffLaterStarted = true
             ifDebug("Turning off the fan in ${humidityDropTimeout.toInteger()} minutes.")
