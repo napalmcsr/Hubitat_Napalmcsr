@@ -63,7 +63,7 @@ def mainPage() {
         input "humidityResponseMethod", "enum", title: "Humidity Response Method", options: humidityResponseMethodOptions, defaultValue: 1, required: true, multiple: true, submitOnChange:true
         app.updateSetting("refresh",[value:"false",type:"bool"])
     }    
-    if ((settings.humidityResponseMethod?.contains("3")) || (settings.humidityResponseMethod?.contains("4"))) {
+    if (settings.humidityResponseMethod?.contains("3") || settings.humidityResponseMethod?.contains("4")) {
 //        section("Comparison Sensor", hideable: true, hidden: hideComparisonSensorSection()) {
         section("") {
             input "compareHumiditySensor", "capability.relativeHumidityMeasurement", title: "${state.compareHumiditySensorStatus}", required: true, submitOnChange:true
@@ -80,7 +80,7 @@ def mainPage() {
     section("<b><u>Fan Deactivation</b></u>") {
         input "humidityDropTimeout", "number", title: "How long after the humidity starts to drop should the fan turn off (minutes):", required: true, defaultValue:  10
         input "humidityDropLimit", "number", title: "What percentage above the starting humidity before triggering the turn off delay:", required: true, defaultValue:  25
-        input "maxRunTime", "number", title: "Maximum time(minutes) for Fan to run when automatically turned on:", required: false, defaultValue: 120    
+        input "maxRunTime", "number", title: "Maximum time(minutes) for Fan to run when automatically turned on:", required: false, defaultValue: 120
     }
     section("<b><u>Manual Activation</b></u>") {
         input "manualControlMode", "enum", title: "When should the fan turn off when turned on manually?", submitOnChange:true, required: true, options: manualControlModeOptions, defaultValue: 2
@@ -97,7 +97,7 @@ section(title: "Logging Options:", hideable: true, hidden: hideLoggingSection())
         if (detailedInstructions == true) {paragraph "Enable Trace logging for 30 minutes will enable trace logs to show up in the Hubitat logs for 30 minutes after which it will turn them off. Useful for following the logic inside the application but usually not neccesary."}
         input "isTrace", "bool", title: "Enable Trace logging for 30 minutes", submitOnChange: false, required:false, defaultValue: false
         if (detailedInstructions == true) {paragraph "Logging level is used to permanantly set your logging level for the application.  If it is set higher than any temporary logging options you enable, it will override them.  If it is set lower than temporary logging options, they will take priority until their timer expires.  This is useful if you prefer you logging set to a low level and then can use the logging toggles for specific use cases so you dont have to remember to go back in and change them later.  It's also useful if you are experiencing issues and need higher logging enabled for longer than 30 minutes."}
-        input "ifLevel","enum", title: "Logging level", required: true, multiple: true, submitOnChange: false, options: logLevelOptions
+        input "ifLevel","enum", title: "Logging level", required: false, multiple: true, submitOnChange: false, options: logLevelOptions
         paragraph "NOTE: Logging level overrides the temporary logging selections."
     }
     section(title: "Only Run When:", hideable: true, hidden: hideOptionsSection()) {
@@ -166,10 +166,9 @@ def initialize() {
     subscribe(compareHumiditySensor, "humidity", compareHumidityHandler)
     subscribe(fanSwitch, "switch", fanSwitchHandler)
     subscribe(humiditySensor, "humidity", humidityHandler)
-    subscribe(location, "mode", modeChangeHandler)
-    diagnosticHandler()
-    updateLabel()
-    getAllOk()
+//    diagnosticHandler()
+//    updateLabel()
+//    getAllOk()
 }
 
 // Device Handlers
@@ -190,7 +189,7 @@ def diagnosticHandler(evt) {
     updateLabel()
 }
 
-def modeChangeHandler(evt) {
+def modeChangeHandler() {
 	ifTrace("modeChangeHandler")
     if (getAllOk == false) {
         ifInfo("modeChangeHandler: Entered a disabled mode, turning off the Fan")
@@ -356,7 +355,7 @@ def rateOfChangeOff() {
     ifTrace("rateOfChangeOff")
     if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
     ifTrace("rateOfChangeOff: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
-    } else if (settings.humidityResponseMethod?.contains("1") && (state?.currentHumidity <= state?.targetHumidity) && !state?.automaticallyTurnedOn && (fanSwitch?.currentValue("switch") == "on") && !state.turnOffLaterStarted) {
+    } else if (settings.humidityResponseMethod?.contains("1") && (state?.currentHumidity <= state?.targetHumidity) && state?.automaticallyTurnedOn && (fanSwitch?.currentValue("switch") == "on") && !state.turnOffLaterStarted) {
         if (humidityDropTimeout == 0) {
             ifDebug("rateOfChangeOff: Fan Off")
             turnOffFan()
@@ -368,7 +367,7 @@ def rateOfChangeOff() {
             state.turnOffLaterStarted = true
             ifDebug("Turning off the fan in ${(60 * humidityDropTimeout.toInteger())} minutes.")
         }
-    } else if (settings.manualControlModeOptions?.contains("1") && (state?.currentHumidity <= state?.targetHumidity) && state?.automaticallyTurnedOn && (fanSwitch?.currentValue("switch") == "on") && !state.turnOffLaterStarted) {
+    } else if (settings.manualControlModeOptions?.contains("1") && (state?.currentHumidity <= state?.targetHumidity) && !state?.automaticallyTurnedOn && (fanSwitch?.currentValue("switch") == "on") && !state.turnOffLaterStarted) {
         if (humidityDropTimeout == 0) {
             ifDebug("rateOfChangeOff: Fan Off")
             turnOffFan()
@@ -477,7 +476,7 @@ def compareRateOfChangeOff() {
     ifTrace("compareRateOfChangeOff: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else {
         if (state.compareHumidity == null) {getComparisonValue()}
-        if ((settings.humidityResponseMethod?.contains("3") == true) && !state.turnOffLaterStarted && (state?.currentHumidity <= state?.compareHumidity)) {
+        if ((settings.humidityResponseMethod?.contains("3") == true) && state?.automaticallyTurnedOn && !state.turnOffLaterStarted && (state?.currentHumidity <= state?.compareHumidity)) {
             if (humidityDropTimeout == 0) {
                 turnOffFan()
                 state.turnOffLaterStarted = false
@@ -510,7 +509,7 @@ def overComparisonOn() {
     ifTrace("overComparisonOn: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else {
         if (state.compareHumidity == null) {getComparisonValue()}
-        if (settings.humidityResponseMethod?.contains("4") && state?.currentHumidity && state?.compareHumidity && (fanSwitch?.currentValue("switch") == "off") && (state?.currentHumidity > state?.compareHumidity)) {
+        if (settings.humidityResponseMethod?.contains("4") && state?.currentHumidity && state?.compareHumidity && (fanSwitch?.currentValue("switch") == "off") && state.automaticallyTurnedOn && (state?.currentHumidity > state?.compareHumidity)) {
             ifTrace("If the humidity is higher than the comparison sensor and the fan is off, kick on the fan")
             ifTrace("state.currentHumidity = ${state?.currentHumidity} state?.compareHumidity = ${state?.compareHumidity}")
             state.turnOffLaterStarted = false
@@ -953,6 +952,7 @@ def getVariableInfo() {
     log.info "state.pausedOrDisabled = ${state?.pausedOrDisabled}"
     log.info "state.disabled = ${state?.disabled}"
     log.info "state.paused = ${state?.paused}"
+    log.info "location.mode = ${location?.mode}"
     log.info "settings.ifLevel?.contains(1) = ${settings.ifLevel?.contains("1")}"
     log.info "settings.ifLevel?.contains(2) = ${settings.ifLevel?.contains("2")}"
     log.info "settings.ifLevel?.contains(3) = ${settings.ifLevel?.contains("3")}"
