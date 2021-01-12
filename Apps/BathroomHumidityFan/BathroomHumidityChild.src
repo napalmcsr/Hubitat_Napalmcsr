@@ -64,11 +64,10 @@ def mainPage() {
         app.updateSetting("refresh",[value:"false",type:"bool"])
     }    
     if (settings.humidityResponseMethod?.contains("3") || settings.humidityResponseMethod?.contains("4")) {
-//        section("Comparison Sensor", hideable: true, hidden: hideComparisonSensorSection()) {
         section("") {
             input "compareHumiditySensor", "capability.relativeHumidityMeasurement", title: "${state.compareHumiditySensorStatus}", required: true, submitOnChange:true
-            if (settings.humidityResponseMethod?.contains("4")) {input "compareHumiditySensorOffset", "number", title: "Comparison Offset Trigger", required: true, submitOnChange:true
-            paragraph "How much deviation from the comparison sensor do you want to trigger the fan? This will set the comparison sensor to be the threshold plus this offset."}
+            input "compareHumiditySensorOffset", "number", title: "Comparison Offset Trigger", required: true, submitOnChange:true
+            paragraph "How much deviation from the comparison sensor do you want to trigger the fan? This will set the comparison sensor to be the threshold plus this offset."
         }
     }
 	section("<b><u>Fan Activation</u></b>"){
@@ -240,12 +239,10 @@ def checkThreshold(evt) {
 def compareHumidityHandler(evt) {
     ifTrace("compareHumidityHandler")
     state.compareHumidityValue = Double.parseDouble(evt.value.replace("%", ""))
-    ifTrace("(settings.humidityResponseMethod?.contains(4) == true) = ${(settings.humidityResponseMethod?.contains("4") == true)} state.compareHumidityValue = ${state.compareHumidityValue} compareHumiditySensor = ${compareHumiditySensor} state?.compareHumidityValue = ${state?.compareHumidityValue} compareHumiditySensorOffset = ${compareHumiditySensorOffset} ")
-    if (settings.humidityResponseMethod?.contains("4") && compareHumiditySensor && state?.compareHumidityValue && compareHumiditySensorOffset) {
+    if ((settings.humidityResponseMethod?.contains("3") || settings.humidityResponseMethod?.contains("4")) && compareHumiditySensor && state?.compareHumidityValue && compareHumiditySensorOffset) {
         if ((state?.compareHumidityValue != null) && (compareHumiditySensorOffset != null)) {
-            state.compareHumidity = (compareHumiditySensorOffset + state.compareHumidityValue)}
-    } else if (settings.humidityResponseMethod?.contains("3") && compareHumiditySensor && state?.compareHumidityValue) {
-        state.compareHumidity = state.compareHumidityValue
+            state.compareHumidity = (compareHumiditySensorOffset + state.compareHumidityValue)
+        }
     }
 }
 
@@ -583,7 +580,7 @@ def overComparisonOff() {
 
 def getComparisonValue() {
     ifTrace("getComparisonValue")
-    state.compareHumidityValue = Double.parseDouble(comparisonHumiditySensor.currentValue("humidity").replace("%", ""))
+    state.compareHumidityValue = Double.parseDouble(compareHumiditySensor.currentValue("humidity").replace("%", ""))
     if ((settings.humidityResponseMethod?.contains("4") == true) && compareHumiditySensor && state?.compareHumidityValue && compareHumiditySensorOffset) {
         if ((state?.compareHumidityValue != null) && (compareHumiditySensorOffset != null)) {
             state.compareHumidity = (compareHumiditySensorOffset+state.compareHumidityValue)}
