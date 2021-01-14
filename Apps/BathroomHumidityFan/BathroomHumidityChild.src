@@ -536,7 +536,6 @@ def overComparisonOn() {
                 ifInfo("overComparisonOn: Turning on fan due to humidity increase")
 	            state.automaticallyTurnedOn = true
                 turnOnFan()
-                ifTrace("overComparisonOn: Turning on fan")
                 state.turnOffLaterStarted = false
             }
             state.startingHumidity = state.lastHumidity
@@ -603,13 +602,13 @@ def turnOffFanHumidity() {
     if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
         ifTrace("turnOffFanHumidity: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else if ((state?.currentHumidity > state.targetHumidity) && (fanSwitch?.currentValue("switch") == "on")) {
-        ifDebug("turnOffFanHumidity: Didn't turn off fan because humidity rate is ${state?.humidityChangeRate}")
-            if (humidityDropTimeout == 0) {
+        ifInfo("turnOffFanHumidity: Didn't turn off fan because the humidity is higher than the target humidity ${state?.targetHumidity}")
+        if (humidityDropTimeout == 0) {
             turnOffFan()
             state.turnOffLaterStarted = false
             ifDebug("turnOffFanHumidity: Turning off the fan. Humidity has returned to normal and it was kicked on by the humidity sensor.")
         } else {
-            ifDebug ("turnOffFanHumidity: Turn Fan off in ${(humidityDropTimeout.toInteger())} minutes.")
+            ifDebug("turnOffFanHumidity: Turn Fan off in ${(humidityDropTimeout.toInteger())} minutes.")
             runIn(60 * humidityDropTimeout.toInteger(), turnOffFan)
             ifDebug("Turning off the fan in ${humidityDropTimeout.toInteger()} minutes.")
         }
@@ -641,9 +640,8 @@ def turnOffFan() {
     if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
         ifTrace("turnOffFan: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else {
-        ifInfo("turnOffFan: Turning the Fan off now")
+        ifInfo("Turning the Fan off now. Current Humidity: ${state?.currentHumidity}%")
         fanSwitch.off()
-        ifDebug("turnOnFan: state.currentHumidity = ${state?.currentHumidity}")
         state.status = "(Off)"
         state.automaticallyTurnedOn = false
         state.turnOffLaterStarted = false
@@ -656,16 +654,14 @@ def turnOnFan() {
         if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
     ifTrace("turnOffFanManual: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else {
-        ifInfo("turnOnFan: Turning the Fan on now")
+        ifInfo("Turning on the fan. Current Humidity: ${state?.currentHumidity}%")
         state.automaticallyTurnedOn = true
         fanSwitch.on()
-        ifTrace("turnOnFan: Turning on fan")
         state.status = "(On)"
         if (maxRunTime) {
             ifDebug("Maximum run time is ${maxRunTime} minutes")
             runIn(60 * maxRunTime.toInteger(), turnOffFanMaxTime)
             state.turnOffLaterStarted = false
-            ifDebug("turnOnFan: state.currentHumidity = ${state?.currentHumidity}")
         }
     updateLabel()
     }
