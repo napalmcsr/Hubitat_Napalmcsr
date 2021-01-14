@@ -13,7 +13,7 @@
 import groovy.transform.Field
 
 def setVersion() {
-    state.version = "1.1.24" // Version number of this app
+    state.version = "1.1.25" // Version number of this app
     state.InternalName = "BathroomHumidityFan"   // this is the name used in the JSON file for this app
 }
 
@@ -202,7 +202,7 @@ def modeChangeHandler() {
 
 // Main Humidity Handler
 def humidityHandler(evt) {
-	ifDebug("humidityHandler: Running Humidity Check")
+	ifTrace("humidityHandler: Running Humidity Check")
 	    humidityHandlerVariablesBefore()
         if (state?.currentHumidity) {
             state.lastHumidity = state.currentHumidity
@@ -643,6 +643,7 @@ def turnOffFan() {
     } else {
         ifInfo("turnOffFan: Turning the Fan off now")
         fanSwitch.off()
+        ifDebug("turnOnFan: state.currentHumidity = ${state?.currentHumidity}")
         state.status = "(Off)"
         state.automaticallyTurnedOn = false
         state.turnOffLaterStarted = false
@@ -664,6 +665,7 @@ def turnOnFan() {
             ifDebug("Maximum run time is ${maxRunTime} minutes")
             runIn(60 * maxRunTime.toInteger(), turnOffFanMaxTime)
             state.turnOffLaterStarted = false
+            ifDebug("turnOnFan: state.currentHumidity = ${state?.currentHumidity}")
         }
     updateLabel()
     }
@@ -689,21 +691,21 @@ def configureHumidityVariables() {
 }
 
 def humidityHandlerVariablesBefore() {
-    ifDebug("humidityHandlerVariablesBefore: Before")
-    ifDebug("humidityHandlerVariablesBefore: state.overThreshold = ${state?.overThreshold}")
-	ifDebug("humidityHandlerVariablesBefore: state.automaticallyTurnedOn = ${state?.automaticallyTurnedOn}")
-	ifDebug("humidityHandlerVariablesBefore: state.turnOffLaterStarted = ${state?.turnOffLaterStarted}")
-	ifDebug("humidityHandlerVariablesBefore: state.lastHumidity = ${state?.lastHumidity}")
-	ifDebug("humidityHandlerVariablesBefore: state.lastHumidityDate = ${state?.lastHumidityDate}")
-	ifDebug("humidityHandlerVariablesBefore: state.currentHumidity = ${state?.currentHumidity}")
-	ifDebug("humidityHandlerVariablesBefore: state.currentHumidityDate = ${state?.currentHumidityDate}")
-	ifDebug("humidityHandlerVariablesBefore: state.startingHumidity = ${state?.startingHumidity}")
-	ifDebug("humidityHandlerVariablesBefore: state.highestHumidity = ${state?.highestHumidity}")
-	ifDebug("humidityHandlerVariablesBefore: state.humidityChangeRate = ${state?.humidityChangeRate}")
-	ifDebug("humidityHandlerVariablesBefore: state.targetHumidity = ${state?.targetHumidity}")
+    ifTrace("humidityHandlerVariablesBefore: Before")
+    ifTrace("humidityHandlerVariablesBefore: state.overThreshold = ${state?.overThreshold}")
+	ifTrace("humidityHandlerVariablesBefore: state.automaticallyTurnedOn = ${state?.automaticallyTurnedOn}")
+	ifTrace("humidityHandlerVariablesBefore: state.turnOffLaterStarted = ${state?.turnOffLaterStarted}")
+	ifTrace("humidityHandlerVariablesBefore: state.lastHumidity = ${state?.lastHumidity}")
+	ifTrace("humidityHandlerVariablesBefore: state.lastHumidityDate = ${state?.lastHumidityDate}")
+	ifTrace("humidityHandlerVariablesBefore: state.currentHumidity = ${state?.currentHumidity}")
+	ifTrace("humidityHandlerVariablesBefore: state.currentHumidityDate = ${state?.currentHumidityDate}")
+	ifTrace("humidityHandlerVariablesBefore: state.startingHumidity = ${state?.startingHumidity}")
+	ifTrace("humidityHandlerVariablesBefore: state.highestHumidity = ${state?.highestHumidity}")
+	ifTrace("humidityHandlerVariablesBefore: state.humidityChangeRate = ${state?.humidityChangeRate}")
+	ifTrace("humidityHandlerVariablesBefore: state.targetHumidity = ${state?.targetHumidity}")
     if (settings.humidityResponseMethod?.contains("3") || settings.humidityResponseMethod?.contains("4")) {ifDebug("humidityHandlerVariablesBefore: state.compareHumidity = ${state.compareHumidity}")}
-    if (settings.humidityResponseMethod?.contains("3")) {ifDebug("humidityHandlerVariablesBefore: state.compareHumidityValue = ${state.compareHumidityValue}")}
-    if (settings.humidityResponseMethod?.contains("4")) {ifDebug("humidityHandlerVariablesBefore: compareHumiditySensorOffset = ${compareHumiditySensorOffset}")}
+    if (settings.humidityResponseMethod?.contains("3")) {ifTrace("humidityHandlerVariablesBefore: state.compareHumidityValue = ${state.compareHumidityValue}")}
+    if (settings.humidityResponseMethod?.contains("4")) {ifTrace("humidityHandlerVariablesBefore: compareHumiditySensorOffset = ${compareHumiditySensorOffset}")}
     ifTrace("humidityHandlerVariablesBefore: settings.humidityResponseMethod?.contains(1) = ${settings.humidityResponseMethod?.contains("1")}")
     ifTrace("humidityHandlerVariablesBefore: settings.humidityResponseMethod?.contains(2) = ${settings.humidityResponseMethod?.contains("2")}")
     ifTrace("humidityHandlerVariablesBefore: settings.humidityResponseMethod?.contains(3) = ${settings.humidityResponseMethod?.contains("3")}")
@@ -711,21 +713,21 @@ def humidityHandlerVariablesBefore() {
 }
 
 def humidityHandlerVariablesAfter() {
-    ifDebug("humidityHandlerVariablesAfter: After")
-    ifDebug("humidityHandlerVariablesAfter: state.overThreshold = ${state?.overThreshold}")
-	ifDebug("humidityHandlerVariablesAfter: state.automaticallyTurnedOn = ${state?.automaticallyTurnedOn}")
-	ifDebug("humidityHandlerVariablesAfter: state.turnOffLaterStarted = ${state.turnOffLaterStarted}")
-	ifDebug("humidityHandlerVariablesAfter: state.lastHumidity = ${state?.lastHumidity}")
-	ifDebug("humidityHandlerVariablesAfter: state.lastHumidityDate = ${state?.lastHumidityDate}")
-	ifDebug("humidityHandlerVariablesAfter: state.currentHumidity = ${state?.currentHumidity}")
-	ifDebug("humidityHandlerVariablesAfter: state.currentHumidityDate = ${state?.currentHumidityDate}")
-	ifDebug("humidityHandlerVariablesAfter: state.startingHumidity = ${state?.startingHumidity}")
-	ifDebug("humidityHandlerVariablesAfter: state.highestHumidity = ${state?.highestHumidity}")
-	//ifDebug("humidityHandlerVariablesAfter: state.humidityChangeRate = ${state?.humidityChangeRate.round(2)}")
-	ifDebug("humidityHandlerVariablesAfter: state.targetHumidity = ${state?.targetHumidity}")
-    if ((settings.humidityResponseMethod?.contains("3")) || (settings.humidityResponseMethod?.contains("4"))) {ifDebug("humidityHandlerVariablesAfter: state.compareHumidity = ${state.compareHumidity}")}
-    if (settings.humidityResponseMethod?.contains("3")) {ifDebug("humidityHandlerVariablesAfter: state.compareHumidityValue = ${state.compareHumidityValue}")}
-    if (settings.humidityResponseMethod?.contains("4")) {ifDebug("humidityHandlerVariablesAfter: compareHumiditySensorOffset = ${compareHumiditySensorOffset}")}
+    ifTrace("humidityHandlerVariablesAfter: After")
+    ifTrace("humidityHandlerVariablesAfter: state.overThreshold = ${state?.overThreshold}")
+	ifTrace("humidityHandlerVariablesAfter: state.automaticallyTurnedOn = ${state?.automaticallyTurnedOn}")
+	ifTrace("humidityHandlerVariablesAfter: state.turnOffLaterStarted = ${state.turnOffLaterStarted}")
+	ifTrace("humidityHandlerVariablesAfter: state.lastHumidity = ${state?.lastHumidity}")
+	ifTrace("humidityHandlerVariablesAfter: state.lastHumidityDate = ${state?.lastHumidityDate}")
+	ifTrace("humidityHandlerVariablesAfter: state.currentHumidity = ${state?.currentHumidity}")
+	ifTrace("humidityHandlerVariablesAfter: state.currentHumidityDate = ${state?.currentHumidityDate}")
+	ifTrace("humidityHandlerVariablesAfter: state.startingHumidity = ${state?.startingHumidity}")
+	ifTrace("humidityHandlerVariablesAfter: state.highestHumidity = ${state?.highestHumidity}")
+	//ifTrace("humidityHandlerVariablesAfter: state.humidityChangeRate = ${state?.humidityChangeRate.round(2)}")
+	ifTrace("humidityHandlerVariablesAfter: state.targetHumidity = ${state?.targetHumidity}")
+    if ((settings.humidityResponseMethod?.contains("3")) || (settings.humidityResponseMethod?.contains("4"))) {ifTrace("humidityHandlerVariablesAfter: state.compareHumidity = ${state.compareHumidity}")}
+    if (settings.humidityResponseMethod?.contains("3")) {ifTrace("humidityHandlerVariablesAfter: state.compareHumidityValue = ${state.compareHumidityValue}")}
+    if (settings.humidityResponseMethod?.contains("4")) {ifTrace("humidityHandlerVariablesAfter: compareHumiditySensorOffset = ${compareHumiditySensorOffset}")}
     ifTrace("humidityHandlerVariablesAfter: settings.humidityResponseMethod?.contains(1) = ${settings.humidityResponseMethod?.contains("1")}")
     ifTrace("humidityHandlerVariablesAfter: settings.humidityResponseMethod?.contains(2) = ${settings.humidityResponseMethod?.contains("2")}")
     ifTrace("humidityHandlerVariablesAfter: settings.humidityResponseMethod?.contains(3) = ${settings.humidityResponseMethod?.contains("3")}")
