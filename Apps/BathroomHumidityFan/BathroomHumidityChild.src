@@ -13,7 +13,7 @@
 import groovy.transform.Field
 
 def setVersion() {
-    state.version = "1.1.25" // Version number of this app
+    state.version = "1.1.26" // Version number of this app
     state.InternalName = "BathroomHumidityFan"   // this is the name used in the JSON file for this app
 }
 
@@ -66,6 +66,7 @@ def mainPage() {
     if (settings.humidityResponseMethod?.contains("3") || settings.humidityResponseMethod?.contains("4")) {
         section("") {
             input "compareHumiditySensor", "capability.relativeHumidityMeasurement", title: "${state.compareHumiditySensorStatus}", required: true, submitOnChange:true
+            if (compareHumiditySensor) {compareHumiditySensor = (compareHumiditySensor.currentValue("humidity"))}
             input "compareHumiditySensorOffset", "number", title: "Comparison Offset Trigger", required: true, submitOnChange:true
             paragraph "How much deviation from the comparison sensor do you want to trigger the fan? This will set the comparison sensor to be the threshold plus this offset."
         }
@@ -196,6 +197,8 @@ def modeChangeHandler() {
         state.status = "(Off)"
         state.automaticallyTurnedOn = false
         state.turnOffLaterStarted = false
+        unschedule(turnOnFan)
+        unschedule(turnOffFan)
         updateLabel()
     }
 }
@@ -203,33 +206,33 @@ def modeChangeHandler() {
 // Main Humidity Handler
 def humidityHandler(evt) {
 	ifTrace("humidityHandler: Running Humidity Check")
-	    humidityHandlerVariablesBefore()
-        if (state?.currentHumidity) {
-            state.lastHumidity = state.currentHumidity
-            state.lastHumidityDate = state.currentHumidityDate
-        }
-        state.currentHumidity = Double.parseDouble(evt.value.replace("%", ""))
-        state.currentHumidityDate = (evt.date.time)
-        configureHumidityVariables()
-        state.overThreshold = checkThreshold(evt)
-	    humidityHandlerVariablesAfter()
-	    // Humidity On Checks
-        if (settings.humidityResponseMethod?.contains("1")) {rateOfChangeOn()}
-        if (settings.humidityResponseMethod?.contains("2")) {overFixedThresholdOn()}
-        if (settings.humidityResponseMethod?.contains("3")) {compareRateOfChangeOn()}
-        if (settings.humidityResponseMethod?.contains("4")) {overComparisonOn()}
-	    // Humidity Off Checks
-        if (settings.humidityResponseMethod?.contains("1")) {rateOfChangeOff()}
-        if (settings.humidityResponseMethod?.contains("2")) {overFixedThresholdOff()}
-        if (settings.humidityResponseMethod?.contains("3")) {compareRateOfChangeOff()}
-        if (settings.humidityResponseMethod?.contains("4")) {overComparisonOff()}
+	humidityHandlerVariablesBefore()
+    if (state?.currentHumidity) {
+        state.lastHumidity = state.currentHumidity
+        state.lastHumidityDate = state.currentHumidityDate
+    }
+    state.currentHumidity = Double.parseDouble(evt.value.replace("%", ""))
+    state.currentHumidityDate = (evt.date.time)
+    configureHumidityVariables()
+    state.overThreshold = checkThreshold(evt)
+	humidityHandlerVariablesAfter()
+	// Humidity On Checks
+    if (settings.humidityResponseMethod?.contains("1")) {rateOfChangeOn()}
+    if (settings.humidityResponseMethod?.contains("2")) {overFixedThresholdOn()}
+    if (settings.humidityResponseMethod?.contains("3")) {compareRateOfChangeOn()}
+    if (settings.humidityResponseMethod?.contains("4")) {overComparisonOn()}
+    // Humidity Off Checks
+    if (settings.humidityResponseMethod?.contains("1")) {rateOfChangeOff()}
+    if (settings.humidityResponseMethod?.contains("2")) {overFixedThresholdOff()}
+    if (settings.humidityResponseMethod?.contains("3")) {compareRateOfChangeOff()}
+    if (settings.humidityResponseMethod?.contains("4")) {overComparisonOff()}
 }
 
 // Event Handlers
 def checkThreshold(evt) {
 	ifTrace("checkThreshold")
     if (Double.parseDouble(evt.value.replace("%", "")) >= humidityThreshold) {  
-		ifDebug("checkThreshold: Humidity is above the Threshold")
+		if (settings.humidityResponseMethod?.contains("2")) {ifDebug("checkThreshold: Humidity is above the Threshold")}
 		return true
     } else {
 		return false
@@ -252,15 +255,20 @@ def fanSwitchHandler(evt) {
         if (settings.manualControlModeOptions?.contains("2") && !state?.automaticallyTurnedOn && manualOffMinutes) {
             if (manualOffMinutes == 0) {
                 ifDebug("fanSwitchHandler: Turning the Fan off now")
+                unschedule(turnOnFan)
                 turnOffFan()
+                state.turnOffLaterStarted = false
             } else if (fanSwitch.currentValue("switch") == "on") {
                 ifDebug("fanSwitchHandler: Will turn off later")
                 runIn(60 * manualOffMinutes.toInteger(), turnOffFan)
+                state.turnOffLaterStarted = true
                 state.status = "(On)"
             } else {
                 (fanSwitch.currentValue("switch") == "off")
                 ifDebug("fanSwitchHandler: Switch already turned off manually")
                 state.status = "(Off)"
+                state.automaticallyTurnedOn = false
+                state.turnOffLaterStarted = false
             }
         }    
     } else if (evt.value == "off") {
@@ -315,10 +323,16 @@ def deviceActivationHandler(evt) {
         deviceActivationState = it.currentValue("switch")
         }
         if (deviceActivationState == "on") {
+            unschedule(turnOffFan)
             turnOnFan()
+            state.turnOnLaterStarted = false
+            state.turnOffLaterStarted = false
             ifTrace("deviceActivationHandler: Turning on fan")
         } else if (deviceActivationState == "off") {
+            unschedule(turnOnFan)
             turnOffFan()
+            state.turnOnLaterStarted = false
+            state.turnOffLaterStarted = false
             ifTrace("deviceActivationHandler: Turning off fan")
         }
     }
@@ -330,21 +344,28 @@ def rateOfChangeOn() {
     if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
     ifTrace("rateOfChangeOn: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else if (settings.humidityResponseMethod?.contains("1") && ((state?.humidityChangeRate > humidityIncreaseRate) || (state?.currentHumidity >= state?.targetHumidity)) && (fanSwitch?.currentValue("switch") == "off")) {
-        ifTrace("If the humidity is high (or rising fast) and the fan is off, kick on the fan")
-        state.turnOffLaterStarted = false
+        ifTrace("Tthe humidity is high (or rising fast) and the fan is off, kick on the fan")
         if ((fanOnDelay > 0) && (fanOnDelay != null)) {
             ifDebug("rateOfChangeOn: Turning on fan later")
+            unschedule(turnOffFan)
             runIn(60 * fanOnDelay.toInteger(), turnOnFan)
+            state.turnOnLaterStarted = true
             ifTrace("rateOfChangeOn: Turning on the fan")
         } else {
             ifDebug("rateOfChangeOn: Turning on fan due to humidity increase")
             state.automaticallyTurnedOn = true
+            unschedule(turnOffFan)
             turnOnFan()
+            state.turnOnLaterStarted = false
             ifTrace("rateOfChangeOn: Turning on fan")
-            state.turnOffLaterStarted = false
         }
         state.startingHumidity = state.lastHumidity
         state.highestHumidity = state.currentHumidity    
+    } else if (settings.humidityResponseMethod?.contains("1") && ((state?.humidityChangeRate > humidityIncreaseRate) || (state?.currentHumidity >= state?.targetHumidity)) && (fanSwitch?.currentValue("switch") == "on") && (state.turnOffLaterStarted == true)) {
+        ifTrace("Tthe humidity is high (or rising fast) and the fan is on but, scheduled to turn off. Leaving the fan on")
+        unschedule(turnOffFan)
+        state.turnOnLaterStarted = false
+        state.turnOffLaterStarted = false
     }
 }
 
@@ -352,26 +373,30 @@ def rateOfChangeOff() {
     ifTrace("rateOfChangeOff")
     if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
     ifTrace("rateOfChangeOff: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
-    } else if (settings.humidityResponseMethod?.contains("1") && (state?.currentHumidity <= state?.targetHumidity) && state?.automaticallyTurnedOn && (fanSwitch?.currentValue("switch") == "on") && !state.turnOffLaterStarted) {
+    } else if (settings.humidityResponseMethod?.contains("1") && (state?.currentHumidity <= state?.targetHumidity) && state?.automaticallyTurnedOn && (fanSwitch?.currentValue("switch") == "on")) {
         if (humidityDropTimeout == 0) {
             ifDebug("rateOfChangeOff: Fan Off")
+            unschedule(turnOnFan)
             turnOffFan()
             state.turnOffLaterStarted = false
             ifDebug("rateOfChangeOff: Turning off the fan. Humidity has returned to normal and it was turned on manually.")
-        } else {
+        } else if (!state.turnOffLaterStarted){
             ifDebug ("rateOfChangeOff: Turn Fan off in ${(humidityDropTimeout.toInteger())} minutes.")
+            unschedule(turnOnFan)
             runIn(60 * humidityDropTimeout.toInteger(), turnOffFan)
             state.turnOffLaterStarted = true
             ifDebug("Turning off the fan in ${(humidityDropTimeout.toInteger())} minutes.")
         }
-    } else if (settings.manualControlModeOptions?.contains("1") && (state?.currentHumidity <= state?.targetHumidity) && !state?.automaticallyTurnedOn && (fanSwitch?.currentValue("switch") == "on") && !state.turnOffLaterStarted) {
+    } else if (settings.manualControlModeOptions?.contains("1") && (state?.currentHumidity <= state?.targetHumidity) && !state?.automaticallyTurnedOn && (fanSwitch?.currentValue("switch") == "on")) {
         if (humidityDropTimeout == 0) {
             ifDebug("rateOfChangeOff: Fan Off")
+            unschedule(turnOnFan)
             turnOffFan()
             state.turnOffLaterStarted = false
             ifDebug("rateOfChangeOff: Turning off the fan. Humidity has returned to normal and it was kicked on by the humidity sensor.")
-        } else {
+        } else if (!state.turnOffLaterStarted){
             ifDebug ("rateOfChangeOff: Turn Fan off in ${(humidityDropTimeout.toInteger())} minutes.")
+            unschedule(turnOnFan)
             runIn(60 * humidityDropTimeout.toInteger(), turnOffFan)
             state.turnOffLaterStarted = true
             ifDebug("Turning off the fan in ${humidityDropTimeout.toInteger()} minutes.")
@@ -385,20 +410,28 @@ def overFixedThresholdOn() {
         if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
     ifTrace("overFixedThresholdOn: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else if (settings.humidityResponseMethod?.contains("2") && (state?.overThreshold == true) && (fanSwitch?.currentValue("switch") == "off")) {
-        ifTrace("If the humidity is high (or rising fast) and the fan is off, kick on the fan")
+        ifTrace("If the humidity is over fixed threshold and the fan is off, kick on the fan")
         if ((fanOnDelay > 0) && (fanOnDelay != null)) {
             ifDebug("overFixedThresholdOn: Turning on fan later")
+            unschedule(turnOffFan)
             runIn(60 * fanOnDelay.toInteger(), turnOnFan)
+            state.turnOnLaterStarted = true
             ifTrace("overFixedThresholdOn: Turning on the fan")
         } else {
             ifDebug("overFixedThresholdOn: Humidity over threshold. Turning on fan now")
 	        state.automaticallyTurnedOn = true
+            unschedule(turnOffFan)
             turnOnFan()
+            state.turnOnLaterStarted = false
             ifTrace("overFixedThresholdOn: Turning on fan")
-            state.turnOffLaterStarted = false
         }
         state.startingHumidity = state.lastHumidity
         state.highestHumidity = state.currentHumidity    
+    } else if (settings.humidityResponseMethod?.contains("2") && (state?.overThreshold == true) && (fanSwitch?.currentValue("switch") == "on") && (state.turnOffLaterStarted == true)) {
+        ifTrace("The humidity is over fixed threshold and the fan is on but, scheduled to turn off. Leaving the fan on")
+        unschedule(turnOffFan)
+        state.turnOnLaterStarted = false
+        state.turnOffLaterStarted = false
     }
 }
 
@@ -407,27 +440,31 @@ def overFixedThresholdOff() {
     ifTrace("overFixedThresholdOff")
     if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
         ifTrace("overFixedThresholdOff: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
-    } else if (settings.humidityResponseMethod?.contains("2") && (state?.currentHumidity <= humidityThreshold) && state?.automaticallyTurnedOn && !state.turnOffLaterStarted) {
+    } else if (settings.humidityResponseMethod?.contains("2") && (state?.currentHumidity <= humidityThreshold) && state?.automaticallyTurnedOn) {
         ifTrace("overFixedThresholdOff: state?.automaticallyTurnedOn = ${state?.automaticallyTurnedOn} settings.manualControlModeOptions?.contains(2) = ${settings.manualControlModeOptions?.contains("2")} !state.turnOffLaterStarted = ${!state.turnOffLaterStarted}")
         if (humidityDropTimeout == 0) {
+            unschedule(turnOnFan)
             turnOffFan()
             state.turnOffLaterStarted = false
             ifDebug("overFixedThresholdOff: Turning off the fan. Humidity has returned to normal and it was kicked on by the humidity sensor.")
-        } else {
+        } else if (!state.turnOffLaterStarted){
             ifTrace ("overFixedThresholdOff: Turn Fan off in ${(humidityDropTimeout.toInteger())} minutes.")
+            unschedule(turnOnFan)
             runIn(60 * humidityDropTimeout.toInteger(), turnOffFan)
             state.turnOffLaterStarted = true
             ifDebug("Turning off the fan in ${humidityDropTimeout.toInteger()} minutes.")
             ifTrace("overFixedThresholdOff: state.turnOffLaterStarted = ${state?.turnOffLaterStarted}")
-        }
-    } else if (settings.manualControlModeOptions?.contains("1") && (state?.currentHumidity <= humidityThreshold) && !state?.automaticallyTurnedOn && !state.turnOffLaterStarted) {
+        }   
+    } else if (settings.manualControlModeOptions?.contains("1") && (state?.currentHumidity <= humidityThreshold) && !state?.automaticallyTurnedOn) {
         ifTrace("overFixedThresholdOff: state?.automaticallyTurnedOn = ${state?.automaticallyTurnedOn} !state.turnOffLaterStarted = ${!state.turnOffLaterStarted}")
         if (humidityDropTimeout == 0) {
+            unschedule(turnOnFan)
             turnOffFan()
             state.turnOffLaterStarted = false
             ifDebug("overFixedThresholdOff: Turning off the fan. Humidity has returned to normal and it was turned on manually.")
-        } else {
+        } else if (!state.turnOffLaterStarted){
             ifTrace ("overFixedThresholdOff: Turn Fan off in ${(humidityDropTimeout.toInteger())} minutes.")
+            unschedule(turnOnFan)
             runIn(60 * humidityDropTimeout.toInteger(), turnOffFan)
             state.turnOffLaterStarted = true
             ifDebug("Turning off the fan in ${humidityDropTimeout.toInteger()} minutes.")
@@ -442,30 +479,37 @@ def compareRateOfChangeOn() {
         ifTrace("compareRateOfChangeOn: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else {
         if (state.compareHumidity == null) {getComparisonValue()}
-        ifTrace("(settings.humidityResponseMethod?.contains(3) == true) = ${(settings.humidityResponseMethod?.contains("3") == true)} state.compareHumidityValue = ${state.compareHumidityValue} compareHumiditySensor = ${compareHumiditySensor} state?.compareHumidityValue = ${state?.compareHumidityValue} compareHumiditySensorOffset = ${compareHumiditySensorOffset} ")
-        if ((settings.humidityResponseMethod?.contains("3") == true) && (state?.humidityChangeRate > humidityIncreaseRate) && (fanSwitch?.currentValue("switch") == "off")) {
-            if (state?.currentHumidity > state?.compareHumidity) {
-                if ((fanOnDelay > 0) && (fanOnDelay != null)) {
-                    ifDebug("compareRateOfChangeOn: Turning on fan later")
-                    runIn(60 * fanOnDelay.toInteger(), turnOnFan)
-                    state.turnOffLaterStarted = false
-                } else {
-                    ifDebug("compareRateOfChangeOn: Turning on fan due to humidity increase and humidity over comparison sensor humidity")
-	                state.automaticallyTurnedOn = true
-                    turnOnFan()
-                    ifTrace("compareRateOfChangeOn: Turning on fan")
-                    state.turnOffLaterStarted = false
-                }
-                state.startingHumidity = state.lastHumidity
-                state.highestHumidity = state.currentHumidity    
-                ifTrace("compareRateOfChangeOn: new state?.humidityChangeRate = ${state?.humidityChangeRate}")
-                ifTrace("compareRateOfChangeOn: new state.humidityIncreaseRate = ${humidityIncreaseRate}")
-                ifTrace("compareRateOfChangeOn: new state?.currentHumidity = ${state?.currentHumidity}")
-                ifTrace("compareRateOfChangeOn: new state?.compareHumidity = ${state?.compareHumidity}")
+        ifTrace("settings.humidityResponseMethod?.contains(3) = ${settings.humidityResponseMethod?.contains("3")} state.compareHumidityValue = ${state.compareHumidityValue} compareHumiditySensor = ${compareHumiditySensor} state?.compareHumidityValue = ${state?.compareHumidityValue} compareHumiditySensorOffset = ${compareHumiditySensorOffset} ")
+        if (settings.humidityResponseMethod?.contains("3") && (state?.humidityChangeRate > humidityIncreaseRate) && (state?.currentHumidity > state?.compareHumidity) && (fanSwitch?.currentValue("switch") == "off")) {
+            if ((fanOnDelay > 0) && (fanOnDelay != null)) {
+                ifDebug("compareRateOfChangeOn: Turning on fan later")
+                unschedule(turnOffFan)
+                runIn(60 * fanOnDelay.toInteger(), turnOnFan)
+                state.turnOnLaterStarted = true
+            } else {
+                ifDebug("compareRateOfChangeOn: Turning on fan due to humidity increase and humidity over comparison sensor humidity")
+	            state.automaticallyTurnedOn = true
+                unschedule(turnOffFan)
+                turnOnFan()
+                ifTrace("compareRateOfChangeOn: Turning on fan")
+                state.turnOnLaterStarted = false
             }
+            state.startingHumidity = state.lastHumidity
+            state.highestHumidity = state.currentHumidity    
+            ifTrace("compareRateOfChangeOn: new state?.humidityChangeRate = ${state?.humidityChangeRate}")
+            ifTrace("compareRateOfChangeOn: new state.humidityIncreaseRate = ${humidityIncreaseRate}")
+            ifTrace("compareRateOfChangeOn: new state?.currentHumidity = ${state?.currentHumidity}")
+            ifTrace("compareRateOfChangeOn: new state?.compareHumidity = ${state?.compareHumidity}")
+        } else if ((settings.humidityResponseMethod?.contains("3") == true) && (state?.humidityChangeRate > humidityIncreaseRate) && (state?.currentHumidity > state?.compareHumidity) && (fanSwitch?.currentValue("switch") == "on") && (state.turnOffLaterStarted == true)) {
+            ifDebug("compareRateOfChangeOn: Leaving the fan on due to humidity increase and humidity over comparison sensor humidity")
+            unschedule(turnOffFan)
+            state.turnOnLaterStarted = false
+            state.turnOffLaterStarted = false
         }
     }
 }
+
+        
 
 def compareRateOfChangeOff() {
     ifTrace("compareRateOfChangeOff")
@@ -473,26 +517,32 @@ def compareRateOfChangeOff() {
     ifTrace("compareRateOfChangeOff: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else {
         if (state.compareHumidity == null) {getComparisonValue()}
-        if ((settings.humidityResponseMethod?.contains("3") == true) && state?.automaticallyTurnedOn && !state.turnOffLaterStarted && (state?.currentHumidity <= state?.compareHumidity)) {
+        if (settings.humidityResponseMethod?.contains("3") && state?.automaticallyTurnedOn && (state?.currentHumidity <= state?.compareHumidity)) {
             if (humidityDropTimeout == 0) {
+                unschedule(turnOnFan)
                 turnOffFan()
                 state.turnOffLaterStarted = false
                 ifDebug("compareRateOfChangeOff: Turning off the fan. Humidity has returned to normal and it was kicked on by the humidity sensor.")
-            } else {
+            } else if (!state.turnOffLaterStarted){
                 ifDebug ("compareRateOfChangeOff: Turn Fan off in ${(humidityDropTimeout.toInteger())} minutes.")
+                unschedule(turnOnFan)
                 runIn(60 * humidityDropTimeout.toInteger(), turnOffFan)
+                state.turnOffLaterStarted = true
                 ifDebug("Turning off the fan in ${humidityDropTimeout.toInteger()} minutes.")
                 ifTrace("compareRateOfChangeOff: state.turnOffLaterStarted = ${state.turnOffLaterStarted}")
             }
-        } else if (settings.manualControlModeOptions?.contains("1") && !state?.automaticallyTurnedOn && !state.turnOffLaterStarted && (state?.currentHumidity <= state?.compareHumidity)) {
+        } else if (settings.manualControlModeOptions?.contains("1") && !state?.automaticallyTurnedOn && (state?.currentHumidity <= state?.compareHumidity)) {
             ifTrace("compareRateOfChangeOff: state?.currentHumidity = ${state?.currentHumidity} state?.targetHumidity = ${state?.targetHumidity}")
             if (humidityDropTimeout == 0) {
+                unschedule(turnOnFan)
                 turnOffFan()
                 state.turnOffLaterStarted = false
                 ifDebug("compareRateOfChangeOff: Turning off the fan. Humidity has returned to normal and it was turned on manually.")
-            } else {
+            } else if (!state.turnOffLaterStarted){
                 ifDebug ("compareRateOfChangeOff: Turn Fan off in ${(humidityDropTimeout.toInteger())} minutes.")
+                unschedule(turnOnFan)
                 runIn(60 * humidityDropTimeout.toInteger(), turnOffFan)
+                state.turnOffLaterStarted = true
                 ifDebug("Turning off the fan in ${humidityDropTimeout.toInteger()} minutes.")
                 ifTrace("compareRateOfChangeOff: state.turnOffLaterStarted = ${state.turnOffLaterStarted}")
             }
@@ -507,42 +557,51 @@ def overComparisonOn() {
     } else {
         if (state.compareHumidity == null) {getComparisonValue()}
         if (settings.humidityResponseMethod?.contains("4") && state?.currentHumidity && state?.compareHumidity && (fanSwitch?.currentValue("switch") == "off") && state.automaticallyTurnedOn && (state?.currentHumidity > state?.compareHumidity)) {
-            ifTrace("If the humidity is higher than the comparison sensor and the fan is off, kick on the fan")
+            ifTrace("The humidity is higher than the comparison sensor and the fan is off, kick on the fan")
             ifTrace("state.currentHumidity = ${state?.currentHumidity} state?.compareHumidity = ${state?.compareHumidity}")
-            state.turnOffLaterStarted = false
             if ((fanOnDelay > 0) && (fanOnDelay != null)) {
                 ifDebug("overComparisonOn: Turning on fan later")
+                unschedule(turnOffFan)
                 runIn(60 * fanOnDelay.toInteger(), turnOnFan)
+                state.turnOnLaterStarted = true
             } else {
                 ifInfo("overComparisonOn: Turning on fan due to humidity increase")
 	            state.automaticallyTurnedOn = true
+                unschedule(turnOffFan)
                 turnOnFan()
                 ifTrace("overComparisonOn: Turning on fan")
-                state.turnOffLaterStarted = false
+                state.turnOnLaterStarted = false
             }
             state.startingHumidity = state.lastHumidity
             state.highestHumidity = state.currentHumidity    
             ifTrace("overFixedThresholdOn: new state.startingHumidity = ${state?.startingHumidity}")
             ifTrace("overFixedThresholdOn: new state.highestHumidity = ${state?.highestHumidity}")
             ifTrace("overFixedThresholdOn: new state.targetHumidity = ${state?.targetHumidity}")
-        } else if ((settings.humidityResponseMethod?.contains("4") == true) && state?.currentHumidity && state?.compareHumidity && (fanSwitch?.currentValue("switch") == "off") && !state.automaticallyTurnedOn && (state?.currentHumidity > state?.compareHumidity)) {
-            ifTrace("If the humidity is higher than the comparison sensor and the fan is off, kick on the fan")
-            ifTrace("state.currentHumidity = ${state?.currentHumidity} state?.compareHumidity = ${state?.compareHumidity}")
+        } else if (settings.humidityResponseMethod?.contains("4") && state?.currentHumidity && state?.compareHumidity && (fanSwitch?.currentValue("switch") == "on") && state.automaticallyTurnedOn && (state?.currentHumidity > state?.compareHumidity) && (state.turnOffLaterStarted == true)) {
+            ifTrace("The humidity is higher than the comparison sensor and the fan is on but, scheduled to turn off. Leaving the fan on")
+            unschedule(turnOffFan)
+            state.turnOnLaterStarted = false
             state.turnOffLaterStarted = false
+        } else if (settings.humidityResponseMethod?.contains("4") && state?.currentHumidity && state?.compareHumidity && (fanSwitch?.currentValue("switch") == "off") && !state.automaticallyTurnedOn && (state?.currentHumidity > state?.compareHumidity)) {
+            ifTrace("The humidity is higher than the comparison sensor and the fan is off, kick on the fan")
+            ifTrace("state.currentHumidity = ${state?.currentHumidity} state?.compareHumidity = ${state?.compareHumidity}")
             if ((fanOnDelay > 0) && (fanOnDelay != null)) {
                 ifDebug("overComparisonOn: Turning on fan later")
+                unschedule(turnOffFan)
                 runIn(60 * fanOnDelay.toInteger(), turnOnFan)
+                state.turnOnLaterStarted = true
             } else {
                 ifInfo("overComparisonOn: Turning on fan due to humidity increase")
 	            state.automaticallyTurnedOn = true
                 turnOnFan()
-                state.turnOffLaterStarted = false
+                unschedule(turnOffFan)
+                state.turnOnLaterStarted = false
+                state.startingHumidity = state.lastHumidity
+                state.highestHumidity = state.currentHumidity    
+                ifTrace("overFixedThresholdOn: new state.startingHumidity = ${state?.startingHumidity}")
+                ifTrace("overFixedThresholdOn: new state.highestHumidity = ${state?.highestHumidity}")
+                ifTrace("overFixedThresholdOn: new state.targetHumidity = ${state?.targetHumidity}")
             }
-            state.startingHumidity = state.lastHumidity
-            state.highestHumidity = state.currentHumidity    
-            ifTrace("overFixedThresholdOn: new state.startingHumidity = ${state?.startingHumidity}")
-            ifTrace("overFixedThresholdOn: new state.highestHumidity = ${state?.highestHumidity}")
-            ifTrace("overFixedThresholdOn: new state.targetHumidity = ${state?.targetHumidity}")
         }
     }
 }
@@ -553,24 +612,30 @@ def overComparisonOff() {
         ifTrace("overComparisonOff: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else {
         if (state?.compareHumidity == null) {getComparisonValue()}
-        if (settings.humidityResponseMethod?.contains("4") && (state?.currentHumidity <= state?.compareHumidity) && state?.automaticallyTurnedOn && !state?.turnOffLaterStarted) {
+        if (settings.humidityResponseMethod?.contains("4") && (state?.currentHumidity <= state?.compareHumidity) && state?.automaticallyTurnedOn) {
             if (humidityDropTimeout == 0) {
                 turnOffFan()
+                unschedule(turnOnFan)
 				state.turnOffLaterStarted = false
                 ifDebug("overComparisonOff: Turning off the fan. Humidity has returned to normal and it was kicked on by the humidity sensor.")
-            } else {
+            } else if (!state.turnOffLaterStarted){
                 ifDebug ("overComparisonOff: Turn Fan off in ${(humidityDropTimeout.toInteger())} minutes.")
                 runIn(60 * humidityDropTimeout.toInteger(), turnOffFan)
+                unschedule(turnOnFan)
+                state.turnOffLaterStarted = true
                 ifDebug("Turning off the fan in ${humidityDropTimeout.toInteger()} minutes.")
             }
-        } else if (settings.manualControlMode?.contains("1") && (state?.currentHumidity <= state?.compareHumidity) && !state?.automaticallyTurnedOn && !state?.turnOffLaterStarted) {
+        } else if (settings.manualControlMode?.contains("1") && (state?.currentHumidity <= state?.compareHumidity) && !state?.automaticallyTurnedOn) {
             if (humidityDropTimeout == 0) {
                 turnOffFan()
+                unschedule(turnOnFan)
 				state.turnOffLaterStarted = false
                 ifDebug("overComparisonOff: Turning off the fan. Humidity has returned to normal and it was kicked on by the humidity sensor.")
-            } else {
+            } else if (!state.turnOffLaterStarted){
                 ifDebug ("overComparisonOff: Turn Fan off in ${(humidityDropTimeout.toInteger())} minutes.")
                 runIn(60 * humidityDropTimeout.toInteger(), turnOffFan)
+                state.turnOffLaterStarted = true
+                unschedule(turnOnFan)
                 ifDebug("Turning off the fan in ${humidityDropTimeout.toInteger()} minutes.")
             }
         }
@@ -579,7 +644,7 @@ def overComparisonOff() {
 
 def getComparisonValue() {
     ifTrace("getComparisonValue")
-    state.compareHumidityValue = Double.parseDouble(compareHumiditySensor.currentValue("humidity").replace("%", ""))
+    if (compareHumiditySensor.currentValue("humidity") != null) {state.compareHumidityValue = Double.parseDouble(compareHumiditySensor.currentValue("humidity").replace("%", ""))}
     if ((settings.humidityResponseMethod?.contains("3") || settings.humidityResponseMethod?.contains("4")) && compareHumiditySensor && state?.compareHumidityValue && compareHumiditySensorOffset) {
         if ((state?.compareHumidityValue != null) && (compareHumiditySensorOffset != null)) {
             state.compareHumidity = (compareHumiditySensorOffset+state.compareHumidityValue)
@@ -594,6 +659,8 @@ def turnOffFanMaxTime() {
     } else {
         ifDebug("turnOffFanMaxTime: The maximum runtime has been exceeded. Turning the fan off now")
         turnOffFan()
+        state.turnOffLaterStarted = false
+        unschedule(turnOnFan)
     }
 }
 
@@ -605,11 +672,14 @@ def turnOffFanHumidity() {
         ifInfo("turnOffFanHumidity: Didn't turn off fan because the humidity is higher than the target humidity ${state?.targetHumidity}")
         if (humidityDropTimeout == 0) {
             turnOffFan()
+            unschedule(turnOnFan)
             state.turnOffLaterStarted = false
             ifDebug("turnOffFanHumidity: Turning off the fan. Humidity has returned to normal and it was kicked on by the humidity sensor.")
         } else {
             ifDebug("turnOffFanHumidity: Turn Fan off in ${(humidityDropTimeout.toInteger())} minutes.")
             runIn(60 * humidityDropTimeout.toInteger(), turnOffFan)
+            unschedule(turnOnFan)
+            state.turnOffLaterStarted = true
             ifDebug("Turning off the fan in ${humidityDropTimeout.toInteger()} minutes.")
         }
     }
@@ -624,6 +694,7 @@ def turnOnFanManual() {
         if (maxRunTime) {
             ifDebug("Maximum run time is ${maxRunTime} minutes")
             runIn(60 * maxRunTime.toInteger(), turnOffFanMaxTime)
+            unschedule(turnOnFan)
             ifTrace("turnOffFanManual: Turning on fan")
             state.status = "(On)"
             state.turnOffLaterStarted = true
@@ -642,8 +713,11 @@ def turnOffFan() {
     } else {
         ifInfo("Turning the Fan off now. Current Humidity: ${state?.currentHumidity}%")
         fanSwitch.off()
+        unschedule(turnOffFan)
+        unschedule(turnOnFan)
         state.status = "(Off)"
         state.automaticallyTurnedOn = false
+        state.turnOnLaterStarted = false
         state.turnOffLaterStarted = false
         updateLabel()
     }
@@ -657,11 +731,14 @@ def turnOnFan() {
         ifInfo("Turning on the fan. Current Humidity: ${state?.currentHumidity}%")
         state.automaticallyTurnedOn = true
         fanSwitch.on()
+        unschedule(turnOffFan)
+        state.turnOnLaterStarted = false
+        state.turnOffLaterStarted = false
         state.status = "(On)"
         if (maxRunTime) {
             ifDebug("Maximum run time is ${maxRunTime} minutes")
             runIn(60 * maxRunTime.toInteger(), turnOffFanMaxTime)
-            state.turnOffLaterStarted = false
+            unschedule(turnOnFan)
         }
     updateLabel()
     }
@@ -671,6 +748,7 @@ def changeMode(mode) {
     ifTrace("changeMode")
     ifDebug("Changing Mode to: ${mode}")
 	if (location?.mode != mode && location.modes?.find { it.name == mode}) setLocationMode(mode)
+    updateLabel()
 }
 
 def configureHumidityVariables() {
@@ -699,7 +777,7 @@ def humidityHandlerVariablesBefore() {
 	ifTrace("humidityHandlerVariablesBefore: state.highestHumidity = ${state?.highestHumidity}")
 	ifTrace("humidityHandlerVariablesBefore: state.humidityChangeRate = ${state?.humidityChangeRate}")
 	ifTrace("humidityHandlerVariablesBefore: state.targetHumidity = ${state?.targetHumidity}")
-    if (settings.humidityResponseMethod?.contains("3") || settings.humidityResponseMethod?.contains("4")) {ifDebug("humidityHandlerVariablesBefore: state.compareHumidity = ${state.compareHumidity}")}
+    if (settings.humidityResponseMethod?.contains("3") || settings.humidityResponseMethod?.contains("4")) {ifTrace("humidityHandlerVariablesBefore: state.compareHumidity = ${state.compareHumidity}")}
     if (settings.humidityResponseMethod?.contains("3")) {ifTrace("humidityHandlerVariablesBefore: state.compareHumidityValue = ${state.compareHumidityValue}")}
     if (settings.humidityResponseMethod?.contains("4")) {ifTrace("humidityHandlerVariablesBefore: compareHumiditySensorOffset = ${compareHumiditySensorOffset}")}
     ifTrace("humidityHandlerVariablesBefore: settings.humidityResponseMethod?.contains(1) = ${settings.humidityResponseMethod?.contains("1")}")
