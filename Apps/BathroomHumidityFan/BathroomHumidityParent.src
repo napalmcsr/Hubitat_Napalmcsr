@@ -7,7 +7,7 @@
  */
 
 def setVersion(){
-	state.version = "1.1.26" // Version number of this app
+	state.version = "1.1.27" // Version number of this app
 	state.InternalName = "BathroomHumidityFan"   // this is the name used in the JSON file for this app
 }
 
@@ -37,6 +37,11 @@ def mainPage() {
         	section("Create a new Bathroom Humidity Fan Instance.") {
             	app(name: "childApps", appName: "Bathroom Humidity Fan Child", namespace: "Craig.Romei", title: "New Bathroom Humidity Fan Instance", multiple: true)
         	}
+            section("Create a combined humidity sensor.") {
+			    input "humidSensors", "capability.relativeHumidityMeasurement", title: "Select Humidity Sensors", submitOnChange: true, required: false, multiple: true
+                input name: "Create", type: "button", title: state.createCombinedSensorButtonName, submitOnChange:true, width: 5
+			if(humidSensors) paragraph "Current average is ${averageHumid()}%"
+		    }
     	}
     }
 }
@@ -47,9 +52,43 @@ def installed() {
 }
 
 def updated() {
-	unsubscribe()
 	initialize()
+    if (state?.created == null) {(state.created = false)}
 }
 
 def initialize() {
+    def averageDev = getChildDevice("AverageHumid_${app.id}")
+	if (getChildDevice("AverageHumid_${app.id}")) {(getChildDevice("AverageHumid_${app.id}")).setHumidity(averageHumid())}
+    if (humidSensors) {subscribe(humidSensors, "humidity", handler)}
+    setCreateCombinedSensorButtonName()
+}
+
+def averageHumid() {
+	def total = 0
+	def n = humidSensors.size()
+	humidSensors.each {total += it.currentHumidity}
+	return (total / n).toDouble().round(1)
+}
+
+def handler(evt) {
+	def avg = averageHumid()
+    if (getChildDevice("AverageHumid_${app.id}")) {(getChildDevice("AverageHumid_${app.id}")).setHumidity(averageHumid())}
+}
+
+def setCreateCombinedSensorButtonName() {
+    if (getChildDevice("AverageHumid_${app.id}")) {
+        state.createCombinedSensorButtonName = "Delete Combined Humidity Sensor"
+    } else if (!getChildDevice("AverageHumid_${app.id}")) {
+        state.createCombinedSensorButtonName = "Create Combined Humidity Sensor"
+    }
+}
+
+def appButtonHandler(btn) {
+    state.created = !state.created
+    if (!getChildDevice("AverageHumid_${app.id}")) {
+        addChildDevice("hubitat", "Virtual Humidity Sensor", "AverageHumid_${app.id}", null, [label: thisName, name: thisName])
+    } else if (state.createCombinedSensorButtonName =="Delete Combined Humidity Sensor") {
+        (deleteChildDevice("AverageHumid_${app.id}"))
+    }
+setCreateCombinedSensorButtonName()
 }
