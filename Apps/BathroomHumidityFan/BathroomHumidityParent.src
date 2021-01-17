@@ -87,6 +87,7 @@ def appButtonHandler(btn) {
     state.created = !state.created
     if (!getChildDevice("AverageHumid_${app.id}")) {
         addChildDevice("hubitat", "Virtual Humidity Sensor", "AverageHumid_${app.id}", null, [label: thisName, name: thisName])
+        (getChildDevice("AverageHumid_${app.id}")).updateSetting("txtEnable",[value:false, type:"bool"])
     } else if (state.createCombinedSensorButtonName =="Delete Combined Humidity Sensor") {
         (deleteChildDevice("AverageHumid_${app.id}"))
     }
