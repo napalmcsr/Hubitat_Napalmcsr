@@ -112,7 +112,7 @@ def CoolSPHandler(evt){
 	debuglog "CoolSPHandler- evt name: ${evt.name}, value: ${evt.value}" 
 	state.CoolSP = evt.value.toFloat()
 }
-
+o
 def TemperatureHandler(evt){
     debuglog "TemperatureHandler- evt name: ${evt.name}, value: ${evt.value}" 
     state.lastTemp = evt.value.toFloat()   
@@ -127,7 +127,7 @@ def enableHandler(evt){
 	if (evt.value=="on") {
 		state.enable = true  
 		TempSensorPolling(true)
-		CheckDisableCheckThermostatControl()
+		runIn(15*1,CheckDisableCheckThermostatControl)
 	}		
 	else {
 		state.enable = false
@@ -146,7 +146,6 @@ def DeadmanHandler()
         debuglog "Deadman on"
         if (state.enable)
         {
-            CheckDisableCheckThermostatControl()
             runIn(60 * DeadmanTime-30, DeadmanCheck)
             runIn(60 * DeadmanTime, DeadmanOff)
         }
@@ -243,6 +242,7 @@ def checkTempRange()
     state.outofRange=outofRange
     if (outofRange){
         TempSensorPolling(false)
+        unschedule(DeadmanCheck)
     }
     else{
         if (state.enable){
