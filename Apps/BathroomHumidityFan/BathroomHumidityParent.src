@@ -7,7 +7,7 @@
  */
 
 def setVersion(){
-	state.version = "1.1.27" // Version number of this app
+	state.version = "1.1.28" // Version number of this app
 	state.InternalName = "BathroomHumidityFan"   // this is the name used in the JSON file for this app
 }
 
@@ -34,10 +34,10 @@ def mainPage() {
         	}
         }
         else {
-        	section("Create a new Bathroom Humidity Fan Instance.") {
+        	section("<b>Create a new Bathroom Humidity Fan Instance.</b>") {
             	app(name: "childApps", appName: "Bathroom Humidity Fan Child", namespace: "Craig.Romei", title: "New Bathroom Humidity Fan Instance", multiple: true)
         	}
-            section("Create a combined humidity sensor.") {
+            section("<b>Create a combined humidity sensor.</b>") {
 			    input "humidSensors", "capability.relativeHumidityMeasurement", title: "Select Humidity Sensors", submitOnChange: true, required: false, multiple: true
                 input name: "Create", type: "button", title: state.createCombinedSensorButtonName, submitOnChange:true, width: 5
 			if(humidSensors) paragraph "Current average is ${averageHumid()}%"
@@ -87,7 +87,6 @@ def appButtonHandler(btn) {
     state.created = !state.created
     if (!getChildDevice("AverageHumid_${app.id}")) {
         addChildDevice("hubitat", "Virtual Humidity Sensor", "AverageHumid_${app.id}", null, [label: thisName, name: thisName])
-        (getChildDevice("AverageHumid_${app.id}")).updateSetting("txtEnable",[value:false, type:"bool"])
     } else if (state.createCombinedSensorButtonName =="Delete Combined Humidity Sensor") {
         (deleteChildDevice("AverageHumid_${app.id}"))
     }
