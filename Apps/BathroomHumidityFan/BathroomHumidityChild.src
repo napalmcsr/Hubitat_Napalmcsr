@@ -13,7 +13,7 @@
 import groovy.transform.Field
 
 def setVersion() {
-    state.version = "1.1.27" // Version number of this app
+    state.version = "1.1.28" // Version number of this app
     state.InternalName = "BathroomHumidityFan"   // this is the name used in the JSON file for this app
 }
 
@@ -44,6 +44,7 @@ def mainPage() {
     ifTrace("mainPage")
     turnOffLoggingTogglesIn30()
     setPauseButtonName()
+    setCreateSmartSwitchButtonName()
     diagnosticHandler()
         
     section("") {
@@ -86,10 +87,22 @@ def mainPage() {
         input "manualControlMode", "enum", title: "When should the fan turn off when turned on manually?", submitOnChange:true, required: true, options: manualControlModeOptions, defaultValue: 2
         if (settings.manualControlMode?.contains("2")) {input "manualOffMinutes", "number", title: "How many minutes until the fan is auto-turned-off?", submitOnChange:true, required: true, defaultValue: 20}
     }
-    section(title: "Additional Features:", hideable: true, hidden: hideOptionsSection()) {
-        input "deviceActivation", "capability.switch", title: "Switches to turn on and off the fan immediately.", submitOnChange:false, required:false, multiple:true
+    section(title: "Additional Features:", hideable: true, hidden: hideAdditionalFeaturesSection()) {
+        input "deviceActivation", "capability.switch", title: "Switches to turn on and off the fan immediately.", submitOnChange:true, required:false, multiple:true
+        paragraph "<b>Create a virtual switch to keep lights on while the fan is running to use in other apps or rules:</b>"
+        paragraph "Note: You can use an existing switch.  The app will turn on and off this switch in sync with the fan."
+        input name: "CreateSmartSwitch", type: "button", title: state.createSmartSwitchButtonName, submitOnChange:true, width: 5
+        input "smartSwitch", "capability.switch", title: "${state.smartSwitchStatus}", required: false, submitOnChange:true
+        
     }
-section(title: "Logging Options:", hideable: true, hidden: hideLoggingSection()) {
+    section(title: "Only Run When:", hideable: true, hidden: hideOptionsSection()) {
+        def timeLabel = timeIntervalLabel()
+        href "timeIntervalInput", title: "Only during a certain time", description: timeLabel ?: "Tap to set", state: timeLabel ? "complete" : null
+        input "days", "enum", title: "Only on certain days of the week", multiple: true, required: false, options: daysOptions
+        input "modes", "mode", title: "Only when mode is", multiple: true, required: false
+        input "disabledSwitch", "capability.switch", title: "Switch to Enable and Disable this app", submitOnChange:true, required:false, multiple:true
+    }
+    section(title: "Logging Options:", hideable: true, hidden: hideLoggingSection()) {
         if (detailedInstructions == true) {paragraph "Enable Info logging for 30 minutes will enable info logs to show up in the Hubitat logs for 30 minutes after which it will turn them off. Useful for checking if the app is performing actions as expected."}
         input "isInfo", "bool", title: "Enable Info logging for 30 minutes", submitOnChange: false, required:false, defaultValue: false
         if (detailedInstructions == true) {paragraph "Enable Debug logging for 30 minutes will enable debug logs to show up in the Hubitat logs for 30 minutes after which it will turn them off. Useful for troubleshooting problems."}
@@ -99,13 +112,6 @@ section(title: "Logging Options:", hideable: true, hidden: hideLoggingSection())
         if (detailedInstructions == true) {paragraph "Logging level is used to permanantly set your logging level for the application.  If it is set higher than any temporary logging options you enable, it will override them.  If it is set lower than temporary logging options, they will take priority until their timer expires.  This is useful if you prefer you logging set to a low level and then can use the logging toggles for specific use cases so you dont have to remember to go back in and change them later.  It's also useful if you are experiencing issues and need higher logging enabled for longer than 30 minutes."}
         input "ifLevel","enum", title: "Logging level", required: false, multiple: true, submitOnChange: false, options: logLevelOptions
         paragraph "NOTE: Logging level overrides the temporary logging selections."
-    }
-    section(title: "Only Run When:", hideable: true, hidden: hideOptionsSection()) {
-        def timeLabel = timeIntervalLabel()
-        href "timeIntervalInput", title: "Only during a certain time", description: timeLabel ?: "Tap to set", state: timeLabel ? "complete" : null
-        input "days", "enum", title: "Only on certain days of the week", multiple: true, required: false, options: daysOptions
-        input "modes", "mode", title: "Only when mode is", multiple: true, required: false
-        input "disabledSwitch", "capability.switch", title: "Switch to Enable and Disable this app", submitOnChange:true, required:false, multiple:true
     }
 	}
 }
@@ -148,6 +154,7 @@ def updated() {
 	{
 		state.installed = true
 	}
+    if (state?.createSmartSwitch == null) {(state.createSmartSwitch = false)}
     unsubscribe()
     unschedule()
     initialize()
@@ -163,9 +170,12 @@ def initialize() {
     subscribe(fanSwitch, "switch", diagnosticHandler)
     subscribe(humiditySensor, "humidity", diagnosticHandler)
     subscribe(compareHumiditySensor, "humidity", diagnosticHandler)
+    subscribe(smartSwitch, "switch", diagnosticHandler)
     subscribe(compareHumiditySensor, "humidity", compareHumidityHandler)
     subscribe(fanSwitch, "switch", fanSwitchHandler)
     subscribe(humiditySensor, "humidity", humidityHandler)
+    if (getChildDevice("SmartSwitch_${app.id}")) {(getChildDevice("SmartSwitch_${app.id}")).currentValue(fanSwitch.currentValue("switch"))}
+    setCreateSmartSwitchButtonName()
 //    diagnosticHandler()
 //    updateLabel()
 //    getAllOk()
@@ -177,7 +187,7 @@ def diagnosticHandler(evt) {
     if (fanSwitch?.currentValue("switch") != null) {state.fanSwitchStatus = "[ Fan: ${fanSwitch.currentValue("switch")} ]"
     } else if (fanSwitch?.latestValue("switch") != null) {state.fanSwitchStatus = "Fan: ${fanSwitch.latestValue("switch")}"} else {state.fanSwitchStatus = "Fan"}
 
-    if ((humiditySensor?.currentValue("battery") != null) && (humiditySensor?.currentValue("humidity") != null)) {state.humiditySensorStatus = "[ Humidity: ${humiditySensor.currentValue("humidity")} ]  [ Battery: ${humiditySensor.currentValue("battery")} ]"
+    if ((humiditySensor?.currentValue("humidity") != null) && (humiditySensor?.currentValue("battery") != null)) {state.humiditySensorStatus = "[ Humidity: ${humiditySensor.currentValue("humidity")} ]  [ Battery: ${humiditySensor.currentValue("battery")} ]"
     } else if (humiditySensor?.currentValue("humidity") != null) {state.humiditySensorStatus = "[Humidity: ${humiditySensor.currentValue("humidity")}]"
     } else if (humiditySensor?.latestValue("humidity") != null) {state.humiditySensorStatus = "[Humidity: ${humiditySensor.latestValue("humidity")}]"
     } else {state.humiditySensorStatus = "Humidity Sensor"}
@@ -186,6 +196,10 @@ def diagnosticHandler(evt) {
     } else if (compareHumiditySensor?.currentValue("humidity") != null) {state.compareHumiditySensorStatus = "[ Humidity: ${compareHumiditySensor.currentValue("humidity")} ]"
     } else if (compareHumiditySensor?.latestValue("humidity") != null) {state.compareHumiditySensorStatus = "[ Humidity: ${compareHumiditySensor.latestValue("humidity")} ]"
     } else {state.compareHumiditySensorStatus = "Comparison Humidity Sensor"}
+    
+    if (smartSwitch?.currentValue("switch") != null) {state.smartSwitchStatus = "[ Smart Switch: ${smartSwitch.currentValue("switch")} ]"
+    } else if (smartSwitch?.latestValue("switch") != null) {state.smartSwitchStatus = "Smart Switch: ${smartSwitch.latestValue("switch")}"} else {state.smartSwitchStatus = "Smart Switch"}
+    
     updateLabel()
 }
 
@@ -194,6 +208,7 @@ def modeChangeHandler() {
     if (getAllOk == false) {
         ifInfo("modeChangeHandler: Entered a disabled mode, turning off the Fan")
 	    fanSwitch.off()
+        if (smartSwitch != null) {smartSwitch.off()}
         state.status = "(Off)"
         state.automaticallyTurnedOn = false
         state.turnOffLaterStarted = false
@@ -231,7 +246,7 @@ def humidityHandler(evt) {
 // Event Handlers
 def checkThreshold(evt) {
 	ifTrace("checkThreshold")
-    if (Double.parseDouble(evt.value.replace("%", "")) >= humidityThreshold) {  
+    if (Double.parseDouble(evt.value.replace("%", "")) >= humidityThreshold) {
 		if (settings.humidityResponseMethod?.contains("2")) {ifDebug("checkThreshold: Humidity is above the Threshold")}
 		return true
     } else {
@@ -242,10 +257,8 @@ def checkThreshold(evt) {
 def compareHumidityHandler(evt) {
     ifTrace("compareHumidityHandler")
     state.compareHumidityValue = Double.parseDouble(evt.value.replace("%", ""))
-    if ((settings.humidityResponseMethod?.contains("3") || settings.humidityResponseMethod?.contains("4")) && compareHumiditySensor && state?.compareHumidityValue && compareHumiditySensorOffset) {
-        if ((state?.compareHumidityValue != null) && (compareHumiditySensorOffset != null)) {
-            state.compareHumidity = (compareHumiditySensorOffset + state.compareHumidityValue)
-        }
+    if ((settings.humidityResponseMethod?.contains("3") || settings.humidityResponseMethod?.contains("4")) && compareHumiditySensor) {
+        if ((state?.compareHumidityValue != null) && (compareHumiditySensorOffset != null)) {state.compareHumidity = (compareHumiditySensorOffset + state.compareHumidityValue)} else if (state?.compareHumidityValue != null) {state.compareHumidity = state.compareHumidityValue}
     }
 }
 
@@ -713,6 +726,7 @@ def turnOffFan() {
     } else {
         ifInfo("Turning the Fan off now. Current Humidity: ${state?.currentHumidity}%")
         fanSwitch.off()
+        if (smartSwitch != null) {smartSwitch.off()}
         unschedule(turnOffFan)
         unschedule(turnOnFan)
         state.status = "(Off)"
@@ -725,12 +739,13 @@ def turnOffFan() {
 
 def turnOnFan() {
     ifTrace("turnOnFan")
-        if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
-    ifTrace("turnOffFanManual: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
+    if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
+        ifTrace("turnOffFanManual: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else {
         ifInfo("Turning on the fan. Current Humidity: ${state?.currentHumidity}%")
         state.automaticallyTurnedOn = true
         fanSwitch.on()
+        if (smartSwitch != null) {smartSwitch.on()}
         unschedule(turnOffFan)
         state.turnOnLaterStarted = false
         state.turnOffLaterStarted = false
@@ -838,11 +853,18 @@ void updateLabel() {
     app.updateLabel("${state.thisName} ${appStatus}")
 }
 
-
-//Enable, Resume, Pause button
+//Smart Switch, and Enable, Resume, Pause button
 def appButtonHandler(btn) {
-    ifTrace("appButtonHandler")
-    if (btn == "Disabled by Switch") {
+    ifTrace("appButtonHandler ${(btn)}")
+    if ((btn == "CreateSmartSwitch") && (state.createSmartSwitchButtonName = "Create Smart Switch") && !getChildDevice("SmartSwitch_${app.id}")) {
+        ifTrace("Creating Smart Switch")
+        addChildDevice("hubitat", "Virtual Switch", "SmartSwitch_${app.id}", null, [label: thisName, name: thisName])
+        setCreateSmartSwitchButtonName()
+    } else if ((btn == "CreateSmartSwitch") && (state.createSmartSwitchButtonName = "Delete Smart Switch") && getChildDevice("SmartSwitch_${app.id}")) {
+        ifTrace("Deleting Smart Switch")
+        (deleteChildDevice("SmartSwitch_${app.id}"))
+        setCreateSmartSwitchButtonName()
+    } else if (btn == "Disabled by Switch") {
         state.disabled = false
         unschedule()
         unsubscribe()
@@ -878,6 +900,14 @@ def appButtonHandler(btn) {
     updateLabel()
 }
 
+def setCreateSmartSwitchButtonName() {
+    if (getChildDevice("SmartSwitch_${app.id}")) {
+        state.createSmartSwitchButtonName = "Delete Smart Switch"
+    } else if (!getChildDevice("SmartSwitch_${app.id}")) {
+        state.createSmartSwitchButtonName = "Create Smart Switch"
+    }
+}
+
 def setPauseButtonName() {
     if (state?.disabled == true) {
         state.pauseButtonName = "Disabled by Switch"
@@ -887,6 +917,7 @@ def setPauseButtonName() {
         subscribe(fanSwitch, "switch", diagnosticHandler)
         subscribe(humiditySensor, "humidity", diagnosticHandler)
         subscribe(compareHumiditySensor, "humidity", diagnosticHandler)
+        subscribe(smartSwitch, "switch", diagnosticHandler)
         updateLabel()
     } else if (state?.paused == true) {
         state.pauseButtonName = "Resume"
@@ -897,13 +928,13 @@ def setPauseButtonName() {
         updated()
     }
 }
-
-
+        
 // Application Page settings
 private hideComparisonSensorSection() {(compareHumiditySensor || compareHumiditySensorOffset) ? false : true}
-//private hideNotificationSection() {(notifyOnLowBattery || lowBatteryNotificationDevices || lowBatteryDevicesToNotifyFor || lowBatteryAlertThreshold || notifyOnFailure || failureNotificationDevices || failureNotifications) ? false : true}
+//wip private hideNotificationSection() {(notifyOnLowBattery || lowBatteryNotificationDevices || lowBatteryDevicesToNotifyFor || lowBatteryAlertThreshold || notifyOnFailure || failureNotificationDevices || failureNotifications) ? false : true}
+private hideAdditionalFeaturesSection() {(deviceActivation || Create || smartSwitch) ? false : true}
+private hideOptionsSection() {(timeIntervalInput || starting || ending || days || modes || disabledSwitch) ? false : true}
 private hideLoggingSection() {(isInfo || isDebug || isTrace || ifLevel) ? false : true}
-private hideOptionsSection() {(starting || ending || days || modes || manualCount) ? false : true}
 def getAllOk() {if ((modeOk && daysOk && timeOk) == true) {return true} else {return false}}
 
 private getModeOk() {
@@ -915,12 +946,8 @@ private getDaysOk() {
 	def result = true
 	if (days) {
 		def df = new java.text.SimpleDateFormat("EEEE")
-		if (location.timeZone) {
-			df.setTimeZone(location.timeZone)
-		}
-		else {
-			df.setTimeZone(TimeZone.getTimeZone("America/New_York"))
-		}
+		if (location.timeZone) {df.setTimeZone(location.timeZone)}
+		else {df.setTimeZone(TimeZone.getTimeZone("America/New_York"))}
 		def day = df.format(new Date())
 		result = days.contains(day)
 	}
@@ -951,10 +978,10 @@ private timeIntervalLabel() {
 
 // Logging functions
 def turnOffLoggingTogglesIn30() {
-    if (!isInfo) {app.updateSetting("isInfo",[value:"false",type:"bool"])}
-    if (!isDebug) {app.updateSetting("isDebug",[value:"false",type:"bool"])}
-    if (!isTrace) {app.updateSetting("isTrace",[value:"false",type:"bool"])}
-    if (isTrace == true) {runIn(1800, traceOff)}
+    if (isInfo == null) {app.updateSetting("isInfo",[value:"false",type:"bool"])}
+    if (isDebug == null) {app.updateSetting("isDebug",[value:"false",type:"bool"])}
+    if (isTrace == null) {app.updateSetting("isTrace",[value:"false",type:"bool"])}
+    if (isInfo == true) {runIn(1800, infoOff)}
     if (isDebug == true) {runIn(1800, debugOff)}
     if (isTrace == true) {runIn(1800, traceOff)}
 }
@@ -1009,7 +1036,7 @@ def ifDebug(msg) {
 
 def ifTrace(msg) {
     if (!settings.ifLevel?.contains("3") && (isTrace != true)) {return}//bail
-    else if (settings.ifLevel?.contains("3") || (isTrace != true)) {log.trace "${state.thisName}: ${msg}"}
+    else if (settings.ifLevel?.contains("3") || (isTrace == true)) {log.trace "${state.thisName}: ${msg}"}
 }
 
 
