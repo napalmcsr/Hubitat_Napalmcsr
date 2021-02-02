@@ -204,7 +204,7 @@ def diagnosticHandler(evt) {
 
 def modeChangeHandler() {
 	ifTrace("modeChangeHandler")
-    if (getAllOk == false) {
+    if (getAllOk() == false) {
         ifInfo("modeChangeHandler: Entered a disabled mode, turning off the Fan")
 	    fanSwitch.off()
         if (smartSwitch != null) {smartSwitch.off()}
@@ -231,9 +231,9 @@ def humidityHandler(evt) {
     state.overThreshold = checkThreshold(evt)
 	humidityHandlerVariablesAfter()
     
-	if ((getAllOk == false) || (state?.paused == true) || (state?.disabled == true) || (state?.pausedOrDisabled == true)) {
-        ifTrace("humidityHandler: getAllOk = ${getAllOk()} state.paused = ${state.paused} state.disabled = ${state.disabled} state.pausedOrDisabled = ${state.pausedOrDisabled}")
-    } else if ((getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+	if ((getAllOk() == false) || (state?.paused == true) || (state?.disabled == true) || (state?.pausedOrDisabled == true)) {
+        ifTrace("humidityHandler: getAllOk() = ${getAllOk()} state.paused = ${state.paused} state.disabled = ${state.disabled} state.pausedOrDisabled = ${state.pausedOrDisabled}")
+    } else if ((getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
         // Humidity On Checks
         if (settings.humidityResponseMethod?.contains("1")) {rateOfChangeOn()}
         if (settings.humidityResponseMethod?.contains("2")) {overFixedThresholdOn()}
@@ -268,10 +268,10 @@ def compareHumidityHandler(evt) {
 
 def fanSwitchHandler(evt) {
     ifTrace("fanSwitchHandler")
-    if ((getAllOk == false) || (state?.paused == true) || (state?.disabled == true) || (state?.pausedOrDisabled == true)) {
-        ifTrace("humidityHandler: getAllOk = ${getAllOk()} state.paused = ${state.paused} state.disabled = ${state.disabled} state.pausedOrDisabled = ${state.pausedOrDisabled}")
+    if ((getAllOk() == false) || (state?.paused == true) || (state?.disabled == true) || (state?.pausedOrDisabled == true)) {
+        ifTrace("humidityHandler: getAllOk() = ${getAllOk()} state.paused = ${state.paused} state.disabled = ${state.disabled} state.pausedOrDisabled = ${state.pausedOrDisabled}")
     } else if (evt.value == "on") {
-        if (settings.manualControlModeOptions?.contains("2") && !state?.automaticallyTurnedOn && manualOffMinutes && (getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+        if (settings.manualControlModeOptions?.contains("2") && !state?.automaticallyTurnedOn && manualOffMinutes && (getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
             if (manualOffMinutes == 0) {
                 ifDebug("fanSwitchHandler: Turning the Fan off now")
                 unschedule(turnOnFan)
@@ -290,7 +290,7 @@ def fanSwitchHandler(evt) {
                 state.turnOffLaterStarted = false
             }
         }    
-    } else if (evt.value == "off" && (getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+    } else if (evt.value == "off" && (getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
         ifDebug("fanSwitchHandler: Switch turned off")
         state.status = "(Off)"
         state.automaticallyTurnedOn = false
@@ -302,8 +302,8 @@ def fanSwitchHandler(evt) {
 
 def disabledHandler(evt) {
     ifTrace("disabledHandler")
-    if (getAllOk == false) {
-        ifTrace("disabledHandler: getAllOk = ${getAllOk()}")
+    if (getAllOk() == false) {
+        ifTrace("disabledHandler: getAllOk() = ${getAllOk()}")
     } else if (disabledSwitch) {
         disabledSwitch.each { it ->
             disabledSwitchState = it.currentValue("switch")
@@ -335,10 +335,10 @@ def disabledHandler(evt) {
 
 def deviceActivationHandler(evt) {
     ifTrace("deviceActivationHandler")
-    ifTrace("deviceActivationHandler: getAllOk = ${getAllOk()} state?.paused = ${state.paused} state?.disabled = ${state.disabled} state?.pausedOrDisabled = ${state.pausedOrDisabled}")
-    if ((getAllOk == false) || (state?.paused == true) || (state?.disabled == true) || (state?.pausedOrDisabled == true)) {
-        ifTrace("deviceActivationHandler: getAllOk = ${getAllOk()} state?.paused = ${state.paused} state?.disabled = ${state.disabled} state?.pausedOrDisabled = ${state.pausedOrDisabled}")
-    } else if ((deviceActivation) && (getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+    ifTrace("deviceActivationHandler: getAllOk() = ${getAllOk()} state?.paused = ${state.paused} state?.disabled = ${state.disabled} state?.pausedOrDisabled = ${state.pausedOrDisabled}")
+    if ((getAllOk() == false) || (state?.paused == true) || (state?.disabled == true) || (state?.pausedOrDisabled == true)) {
+        ifTrace("deviceActivationHandler: getAllOk() = ${getAllOk()} state?.paused = ${state.paused} state?.disabled = ${state.disabled} state?.pausedOrDisabled = ${state.pausedOrDisabled}")
+    } else if ((deviceActivation) && (getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
         deviceActivation.each { it ->
             deviceActivationState = it.currentValue("switch")
         }
@@ -361,9 +361,9 @@ def deviceActivationHandler(evt) {
 // Application functions
 def rateOfChangeOn() {
     ifTrace("rateOfChangeOn")
-    if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
-        ifTrace("rateOfChangeOn: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
-    } else if (settings.humidityResponseMethod?.contains("1") && ((state?.humidityChangeRate > humidityIncreaseRate) || (state?.currentHumidity >= state?.targetHumidity)) && (fanSwitch?.currentValue("switch") == "off") && (getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+    if ((getAllOk() == false) || (state?.pausedOrDisabled == true)) {
+        ifTrace("rateOfChangeOn: getAllOk() = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
+    } else if (settings.humidityResponseMethod?.contains("1") && ((state?.humidityChangeRate > humidityIncreaseRate) || (state?.currentHumidity >= state?.targetHumidity)) && (fanSwitch?.currentValue("switch") == "off") && (getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
         ifTrace("Tthe humidity is high (or rising fast) and the fan is off, kick on the fan")
         if ((fanOnDelay > 0) && (fanOnDelay != null)) {
             ifDebug("rateOfChangeOn: Turning on fan later")
@@ -381,7 +381,7 @@ def rateOfChangeOn() {
         }
         state.startingHumidity = state.lastHumidity
         state.highestHumidity = state.currentHumidity    
-    } else if (settings.humidityResponseMethod?.contains("1") && ((state?.humidityChangeRate > humidityIncreaseRate) || (state?.currentHumidity >= state?.targetHumidity)) && (fanSwitch?.currentValue("switch") == "on") && (state.turnOffLaterStarted == true) && (getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+    } else if (settings.humidityResponseMethod?.contains("1") && ((state?.humidityChangeRate > humidityIncreaseRate) || (state?.currentHumidity >= state?.targetHumidity)) && (fanSwitch?.currentValue("switch") == "on") && (state.turnOffLaterStarted == true) && (getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
         ifTrace("Tthe humidity is high (or rising fast) and the fan is on but, scheduled to turn off. Leaving the fan on")
         unschedule(turnOffFan)
         state.turnOnLaterStarted = false
@@ -391,9 +391,9 @@ def rateOfChangeOn() {
 
 def rateOfChangeOff() {
     ifTrace("rateOfChangeOff")
-    if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
-    ifTrace("rateOfChangeOff: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
-    } else if (settings.humidityResponseMethod?.contains("1") && (state?.currentHumidity <= state?.targetHumidity) && state?.automaticallyTurnedOn && (fanSwitch?.currentValue("switch") == "on") && (getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+    if ((getAllOk() == false) || (state?.pausedOrDisabled == true)) {
+    ifTrace("rateOfChangeOff: getAllOk() = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
+    } else if (settings.humidityResponseMethod?.contains("1") && (state?.currentHumidity <= state?.targetHumidity) && state?.automaticallyTurnedOn && (fanSwitch?.currentValue("switch") == "on") && (getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
         if (humidityDropTimeout == 0) {
             ifDebug("rateOfChangeOff: Fan Off")
             unschedule(turnOnFan)
@@ -407,7 +407,7 @@ def rateOfChangeOff() {
             state.turnOffLaterStarted = true
             ifDebug("Turning off the fan in ${(humidityDropTimeout.toInteger())} minutes.")
         }
-    } else if (settings.manualControlModeOptions?.contains("1") && (state?.currentHumidity <= state?.targetHumidity) && !state?.automaticallyTurnedOn && (fanSwitch?.currentValue("switch") == "on") && (getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+    } else if (settings.manualControlModeOptions?.contains("1") && (state?.currentHumidity <= state?.targetHumidity) && !state?.automaticallyTurnedOn && (fanSwitch?.currentValue("switch") == "on") && (getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
         if (humidityDropTimeout == 0) {
             ifDebug("rateOfChangeOff: Fan Off")
             unschedule(turnOnFan)
@@ -426,9 +426,9 @@ def rateOfChangeOff() {
 
 def overFixedThresholdOn() {
     ifTrace("overFixedThresholdOn")
-    if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
-        ifTrace("overFixedThresholdOn: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
-    } else if (settings.humidityResponseMethod?.contains("2") && (state?.overThreshold == true) && (fanSwitch?.currentValue("switch") == "off") && (getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+    if ((getAllOk() == false) || (state?.pausedOrDisabled == true)) {
+        ifTrace("overFixedThresholdOn: getAllOk() = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
+    } else if (settings.humidityResponseMethod?.contains("2") && (state?.overThreshold == true) && (fanSwitch?.currentValue("switch") == "off") && (getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
         ifTrace("If the humidity is over fixed threshold and the fan is off, kick on the fan")
         if ((fanOnDelay > 0) && (fanOnDelay != null)) {
             ifDebug("overFixedThresholdOn: Turning on fan later")
@@ -446,7 +446,7 @@ def overFixedThresholdOn() {
         }
         state.startingHumidity = state.lastHumidity
         state.highestHumidity = state.currentHumidity    
-    } else if (settings.humidityResponseMethod?.contains("2") && (state?.overThreshold == true) && (fanSwitch?.currentValue("switch") == "on") && (getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+    } else if (settings.humidityResponseMethod?.contains("2") && (state?.overThreshold == true) && (fanSwitch?.currentValue("switch") == "on") && (getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
         ifTrace("The humidity is over fixed threshold and the fan is on but, scheduled to turn off. Leaving the fan on")
         unschedule(turnOffFan)
         state.turnOnLaterStarted = false
@@ -456,9 +456,9 @@ def overFixedThresholdOn() {
 
 def overFixedThresholdOff() {
     ifTrace("overFixedThresholdOff")
-    if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
-        ifTrace("overFixedThresholdOff: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
-    } else if (settings.humidityResponseMethod?.contains("2") && (state?.currentHumidity <= humidityThreshold) && state?.automaticallyTurnedOn && (getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+    if ((getAllOk() == false) || (state?.pausedOrDisabled == true)) {
+        ifTrace("overFixedThresholdOff: getAllOk() = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
+    } else if (settings.humidityResponseMethod?.contains("2") && (state?.currentHumidity <= humidityThreshold) && state?.automaticallyTurnedOn && (getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
         ifTrace("overFixedThresholdOff: state?.automaticallyTurnedOn = ${state?.automaticallyTurnedOn} settings.manualControlModeOptions?.contains(2) = ${settings.manualControlModeOptions?.contains("2")} !state.turnOffLaterStarted = ${!state.turnOffLaterStarted}")
         if (humidityDropTimeout == 0) {
             unschedule(turnOnFan)
@@ -473,7 +473,7 @@ def overFixedThresholdOff() {
             ifDebug("Turning off the fan in ${humidityDropTimeout.toInteger()} minutes.")
             ifTrace("overFixedThresholdOff: state.turnOffLaterStarted = ${state?.turnOffLaterStarted}")
         }   
-    } else if (settings.manualControlModeOptions?.contains("1") && (state?.currentHumidity <= humidityThreshold) && !state?.automaticallyTurnedOn && (getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+    } else if (settings.manualControlModeOptions?.contains("1") && (state?.currentHumidity <= humidityThreshold) && !state?.automaticallyTurnedOn && (getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
         ifTrace("overFixedThresholdOff: state?.automaticallyTurnedOn = ${state?.automaticallyTurnedOn} !state.turnOffLaterStarted = ${!state.turnOffLaterStarted}")
         if (humidityDropTimeout == 0) {
             unschedule(turnOnFan)
@@ -494,11 +494,11 @@ def overFixedThresholdOff() {
 def compareRateOfChangeOn() {
     ifTrace("compareRateOfChangeOn")
     if (state.compareHumidity == null) {getComparisonValue()}
-    if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
-        ifTrace("compareRateOfChangeOn: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
+    if ((getAllOk() == false) || (state?.pausedOrDisabled == true)) {
+        ifTrace("compareRateOfChangeOn: getAllOk() = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else {
         ifTrace("settings.humidityResponseMethod?.contains(3) = ${settings.humidityResponseMethod?.contains("3")} state.compareHumidityValue = ${state.compareHumidityValue} compareHumiditySensor = ${compareHumiditySensor} state?.compareHumidityValue = ${state?.compareHumidityValue} compareHumiditySensorOffset = ${compareHumiditySensorOffset} ")
-        if (settings.humidityResponseMethod?.contains("3") && (state?.humidityChangeRate > humidityIncreaseRate) && (state?.currentHumidity > state?.compareHumidity) && (fanSwitch?.currentValue("switch") == "off") && (getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+        if (settings.humidityResponseMethod?.contains("3") && (state?.humidityChangeRate > humidityIncreaseRate) && (state?.currentHumidity > state?.compareHumidity) && (fanSwitch?.currentValue("switch") == "off") && (getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
             if ((fanOnDelay > 0) && (fanOnDelay != null)) {
                 ifDebug("compareRateOfChangeOn: Turning on fan later")
                 unschedule(turnOffFan)
@@ -518,7 +518,7 @@ def compareRateOfChangeOn() {
             ifTrace("compareRateOfChangeOn: new state.humidityIncreaseRate = ${humidityIncreaseRate}")
             ifTrace("compareRateOfChangeOn: new state?.currentHumidity = ${state?.currentHumidity}")
             ifTrace("compareRateOfChangeOn: new state?.compareHumidity = ${state?.compareHumidity}")
-        } else if ((settings.humidityResponseMethod?.contains("3") == true) && (state?.humidityChangeRate > humidityIncreaseRate) && (state?.currentHumidity > state?.compareHumidity) && (fanSwitch?.currentValue("switch") == "on") && (state.turnOffLaterStarted == true) && (getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+        } else if ((settings.humidityResponseMethod?.contains("3") == true) && (state?.humidityChangeRate > humidityIncreaseRate) && (state?.currentHumidity > state?.compareHumidity) && (fanSwitch?.currentValue("switch") == "on") && (state.turnOffLaterStarted == true) && (getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
             ifDebug("compareRateOfChangeOn: Leaving the fan on due to humidity increase and humidity over comparison sensor humidity")
             unschedule(turnOffFan)
             state.turnOnLaterStarted = false
@@ -530,10 +530,10 @@ def compareRateOfChangeOn() {
 def compareRateOfChangeOff() {
     ifTrace("compareRateOfChangeOff")
     if (state?.compareHumidity == null) {getComparisonValue()}
-    if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
-        ifTrace("compareRateOfChangeOff: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
+    if ((getAllOk() == false) || (state?.pausedOrDisabled == true)) {
+        ifTrace("compareRateOfChangeOff: getAllOk() = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else {
-        if (settings.humidityResponseMethod?.contains("3") && state?.automaticallyTurnedOn && (state?.currentHumidity <= state?.compareHumidity) && (getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+        if (settings.humidityResponseMethod?.contains("3") && state?.automaticallyTurnedOn && (state?.currentHumidity <= state?.compareHumidity) && (getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
             if (humidityDropTimeout == 0) {
                 unschedule(turnOnFan)
                 turnOffFan()
@@ -547,7 +547,7 @@ def compareRateOfChangeOff() {
                 ifDebug("Turning off the fan in ${humidityDropTimeout.toInteger()} minutes.")
                 ifTrace("compareRateOfChangeOff: state.turnOffLaterStarted = ${state.turnOffLaterStarted}")
             }
-        } else if (settings.manualControlModeOptions?.contains("1") && !state?.automaticallyTurnedOn && (state?.currentHumidity <= state?.compareHumidity) && (getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+        } else if (settings.manualControlModeOptions?.contains("1") && !state?.automaticallyTurnedOn && (state?.currentHumidity <= state?.compareHumidity) && (getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
             ifTrace("compareRateOfChangeOff: state?.currentHumidity = ${state?.currentHumidity} state?.targetHumidity = ${state?.targetHumidity}")
             if (humidityDropTimeout == 0) {
                 unschedule(turnOnFan)
@@ -568,11 +568,11 @@ def compareRateOfChangeOff() {
 
 def overComparisonOn() {
     ifTrace("overComparisonOn")
-    if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
-        ifTrace("overComparisonOn: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
+    if ((getAllOk() == false) || (state?.pausedOrDisabled == true)) {
+        ifTrace("overComparisonOn: getAllOk() = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else {
         if (state.compareHumidity == null) {getComparisonValue()}
-        if (settings.humidityResponseMethod?.contains("4") && state?.currentHumidity && state?.compareHumidity && (fanSwitch?.currentValue("switch") == "off") && state.automaticallyTurnedOn && (state?.currentHumidity > state?.compareHumidity) && (getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+        if (settings.humidityResponseMethod?.contains("4") && state?.currentHumidity && state?.compareHumidity && (fanSwitch?.currentValue("switch") == "off") && state.automaticallyTurnedOn && (state?.currentHumidity > state?.compareHumidity) && (getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
             ifTrace("The humidity is higher than the comparison sensor and the fan is off, kick on the fan")
             ifTrace("state.currentHumidity = ${state?.currentHumidity} state?.compareHumidity = ${state?.compareHumidity}")
             if ((fanOnDelay > 0) && (fanOnDelay != null)) {
@@ -593,12 +593,12 @@ def overComparisonOn() {
             ifTrace("overFixedThresholdOn: new state.startingHumidity = ${state?.startingHumidity}")
             ifTrace("overFixedThresholdOn: new state.highestHumidity = ${state?.highestHumidity}")
             ifTrace("overFixedThresholdOn: new state.targetHumidity = ${state?.targetHumidity}")
-        } else if (settings.humidityResponseMethod?.contains("4") && state?.currentHumidity && state?.compareHumidity && (fanSwitch?.currentValue("switch") == "on") && state.automaticallyTurnedOn && (state?.currentHumidity > state?.compareHumidity) && (state.turnOffLaterStarted == true) && (getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+        } else if (settings.humidityResponseMethod?.contains("4") && state?.currentHumidity && state?.compareHumidity && (fanSwitch?.currentValue("switch") == "on") && state.automaticallyTurnedOn && (state?.currentHumidity > state?.compareHumidity) && (state.turnOffLaterStarted == true) && (getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
             ifTrace("The humidity is higher than the comparison sensor and the fan is on but, scheduled to turn off. Leaving the fan on")
             unschedule(turnOffFan)
             state.turnOnLaterStarted = false
             state.turnOffLaterStarted = false
-        } else if (settings.humidityResponseMethod?.contains("4") && state?.currentHumidity && state?.compareHumidity && (fanSwitch?.currentValue("switch") == "off") && !state.automaticallyTurnedOn && (state?.currentHumidity > state?.compareHumidity) && (getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+        } else if (settings.humidityResponseMethod?.contains("4") && state?.currentHumidity && state?.compareHumidity && (fanSwitch?.currentValue("switch") == "off") && !state.automaticallyTurnedOn && (state?.currentHumidity > state?.compareHumidity) && (getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
             ifTrace("The humidity is higher than the comparison sensor and the fan is off, kick on the fan")
             ifTrace("state.currentHumidity = ${state?.currentHumidity} state?.compareHumidity = ${state?.compareHumidity}")
             if ((fanOnDelay > 0) && (fanOnDelay != null)) {
@@ -624,11 +624,11 @@ def overComparisonOn() {
 
 def overComparisonOff() {
     ifTrace("overComparisonOff")
-    if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
-        ifTrace("overComparisonOff: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
+    if ((getAllOk() == false) || (state?.pausedOrDisabled == true)) {
+        ifTrace("overComparisonOff: getAllOk() = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
     } else {
         if (state?.compareHumidity == null) {getComparisonValue()}
-        if (settings.humidityResponseMethod?.contains("4") && (state?.currentHumidity <= state?.compareHumidity) && state?.automaticallyTurnedOn && (getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+        if (settings.humidityResponseMethod?.contains("4") && (state?.currentHumidity <= state?.compareHumidity) && state?.automaticallyTurnedOn && (getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
             if (humidityDropTimeout == 0) {
                 turnOffFan()
                 unschedule(turnOnFan)
@@ -641,7 +641,7 @@ def overComparisonOff() {
                 state.turnOffLaterStarted = true
                 ifDebug("Turning off the fan in ${humidityDropTimeout.toInteger()} minutes.")
             }
-        } else if (settings.manualControlMode?.contains("1") && (state?.currentHumidity <= state?.compareHumidity) && !state?.automaticallyTurnedOn && (getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+        } else if (settings.manualControlMode?.contains("1") && (state?.currentHumidity <= state?.compareHumidity) && !state?.automaticallyTurnedOn && (getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
             if (humidityDropTimeout == 0) {
                 turnOffFan()
                 unschedule(turnOnFan)
@@ -670,9 +670,9 @@ def getComparisonValue() {
 
 def turnOffFanMaxTime() {
     ifTrace("turnOffFanMaxTime")
-    if ((getAllOk == false) || (state?.paused == true) || (state?.disabled == true) || (state?.pausedOrDisabled == true)) {
-        ifTrace("turnOffFanMaxTime: getAllOk = ${getAllOk()} state.paused = ${state.paused} state.disabled = ${state.disabled} state.pausedOrDisabled = ${state.pausedOrDisabled}")
-    } else if ((getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+    if ((getAllOk() == false) || (state?.paused == true) || (state?.disabled == true) || (state?.pausedOrDisabled == true)) {
+        ifTrace("turnOffFanMaxTime: getAllOk() = ${getAllOk()} state.paused = ${state.paused} state.disabled = ${state.disabled} state.pausedOrDisabled = ${state.pausedOrDisabled}")
+    } else if ((getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
         ifDebug("turnOffFanMaxTime: The maximum runtime has been exceeded. Turning the fan off now")
         turnOffFan()
         state.turnOffLaterStarted = false
@@ -682,9 +682,9 @@ def turnOffFanMaxTime() {
 
 def turnOffFanHumidity() {
     ifTrace("turnOffFanHumidity")
-    if ((getAllOk == false) || (state?.pausedOrDisabled == true)) {
-        ifTrace("turnOffFanHumidity: getAllOk = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
-    } else if ((state?.currentHumidity > state.targetHumidity) && (fanSwitch?.currentValue("switch") == "on") && (getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+    if ((getAllOk() == false) || (state?.pausedOrDisabled == true)) {
+        ifTrace("turnOffFanHumidity: getAllOk() = ${getAllOk()} state?.pausedOrDisabled = ${state?.pausedOrDisabled}")
+    } else if ((state?.currentHumidity > state.targetHumidity) && (fanSwitch?.currentValue("switch") == "on") && (getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
         ifInfo("turnOffFanHumidity: Didn't turn off fan because the humidity is higher than the target humidity ${state?.targetHumidity}")
         if (humidityDropTimeout == 0) {
             turnOffFan()
@@ -704,9 +704,9 @@ def turnOffFanHumidity() {
 
 def turnOnFanManual() {
     ifTrace("turnOffFanManual")
-    if ((getAllOk == false) || (state?.paused == true) || (state?.disabled == true) || (state?.pausedOrDisabled == true)) {
-        ifTrace("turnOffFanManual: getAllOk = ${getAllOk()} state.paused = ${state.paused} state.disabled = ${state.disabled} state.pausedOrDisabled = ${state.pausedOrDisabled}")
-    } else if ((state?.automaticallyTurnedOn == false) && (maxRunTime) && (getAllOk != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
+    if ((getAllOk() == false) || (state?.paused == true) || (state?.disabled == true) || (state?.pausedOrDisabled == true)) {
+        ifTrace("turnOffFanManual: getAllOk() = ${getAllOk()} state.paused = ${state.paused} state.disabled = ${state.disabled} state.pausedOrDisabled = ${state.pausedOrDisabled}")
+    } else if ((state?.automaticallyTurnedOn == false) && (maxRunTime) && (getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
         ifDebug("Maximum run time is ${maxRunTime} minutes")
         runIn(60 * maxRunTime.toInteger(), turnOffFanMaxTime)
         unschedule(turnOnFan)
@@ -722,9 +722,9 @@ def turnOnFanManual() {
 
 def turnOffFan() {
     ifTrace("turnOffFan")
-    ifTrace("turnOffFan: getAllOk = ${getAllOk()} state.paused = ${state.paused} state.disabled = ${state.disabled} state.pausedOrDisabled = ${state.pausedOrDisabled}")
-	if ((getAllOk == false) || (state?.paused == true) || (state?.disabled == true) || (state?.pausedOrDisabled == true)) {
-        ifTrace("turnOffFan: getAllOk = ${getAllOk()} state.paused = ${state.paused} state.disabled = ${state.disabled} state.pausedOrDisabled = ${state.pausedOrDisabled}")
+    ifTrace("turnOffFan: getAllOk() = ${getAllOk()} state.paused = ${state.paused} state.disabled = ${state.disabled} state.pausedOrDisabled = ${state.pausedOrDisabled}")
+	if ((getAllOk() == false) || (state?.paused == true) || (state?.disabled == true) || (state?.pausedOrDisabled == true)) {
+        ifTrace("turnOffFan: getAllOk() = ${getAllOk()} state.paused = ${state.paused} state.disabled = ${state.disabled} state.pausedOrDisabled = ${state.pausedOrDisabled}")
     } else if ((getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
         ifTrace("${(getAllOk() != "false")}")
         ifInfo("Turning the Fan off.")
@@ -742,9 +742,9 @@ def turnOffFan() {
 
 def turnOnFan() {
     ifTrace("turnOnFan")
-    ifTrace("turnOnFan: getAllOk = ${getAllOk()} state.paused = ${state.paused} state.disabled = ${state.disabled} state.pausedOrDisabled = ${state.pausedOrDisabled}")
+    ifTrace("turnOnFan: getAllOk() = ${getAllOk()} state.paused = ${state.paused} state.disabled = ${state.disabled} state.pausedOrDisabled = ${state.pausedOrDisabled}")
     if ((getAllOk() == false) || (state?.paused == true) || (state?.disabled == true) || (state?.pausedOrDisabled == true)) {
-        ifTrace("turnOnFan: getAllOk = ${getAllOk()} state.paused = ${state.paused} state.disabled = ${state.disabled} state.pausedOrDisabled = ${state.pausedOrDisabled}")
+        ifTrace("turnOnFan: getAllOk() = ${getAllOk()} state.paused = ${state.paused} state.disabled = ${state.disabled} state.pausedOrDisabled = ${state.pausedOrDisabled}")
     } else if ((getAllOk() != false) && (state?.paused != true) && (state?.disabled != true) && (state?.pausedOrDisabled != true)) {
         ifInfo("Turning on the fan.")
         state.automaticallyTurnedOn = true
