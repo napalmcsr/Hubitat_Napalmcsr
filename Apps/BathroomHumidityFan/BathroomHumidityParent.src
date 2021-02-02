@@ -7,7 +7,7 @@
  */
 
 def setVersion(){
-	state.version = "1.1.29" // Version number of this app
+	state.version = "1.1.28" // Version number of this app
 	state.InternalName = "BathroomHumidityFan"   // this is the name used in the JSON file for this app
 }
 
@@ -58,8 +58,7 @@ def updated() {
 
 def initialize() {
     def averageDev = getChildDevice("AverageHumid_${app.id}")
-    def avg = averageHumid()
-	if (getChildDevice("AverageHumid_${app.id}")) {((getChildDevice("AverageHumid_${app.id}")).setHumidity(avg))}
+	if (getChildDevice("AverageHumid_${app.id}")) {(getChildDevice("AverageHumid_${app.id}")).setHumidity(averageHumid())}
     if (humidSensors) {subscribe(humidSensors, "humidity", handler)}
     setCreateCombinedSensorButtonName()
 }
@@ -67,13 +66,13 @@ def initialize() {
 def averageHumid() {
 	def total = 0
 	def n = humidSensors.size()
-	humidSensors.each {total += ((it.currentHumidity).toDouble().round(1))}
+	humidSensors.each {total += it.currentHumidity}
 	return (total / n).toDouble().round(1)
 }
 
 def handler(evt) {
 	def avg = averageHumid()
-    if (getChildDevice("AverageHumid_${app.id}")) {(getChildDevice("AverageHumid_${app.id}")).setHumidity(avg)}
+    if (getChildDevice("AverageHumid_${app.id}")) {(getChildDevice("AverageHumid_${app.id}")).setHumidity(averageHumid())}
 }
 
 def setCreateCombinedSensorButtonName() {
