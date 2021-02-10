@@ -49,6 +49,7 @@ def mainPage() {
         
     section("") {
         input name: "Pause", type: "button", title: state.pauseButtonName, submitOnChange:true
+        input name: "detailedInstructions", type: "bool", title: "Enable detailed instructions", defaultValue: false, submitOnChange: true
     }
     section("") {
         if ((state.thisName == null) || (state.thisName == "null <span style=color:white> </span>")) {state.thisName = "Enter a name for this app."}
@@ -58,39 +59,49 @@ def mainPage() {
     }
 	section("") {
         input "refresh", "bool", title: "Click here to refresh the device status", submitOnChange:true
+        if (detailedInstructions == true) {paragraph "This is the device that is triggered when conditions are met."}
         input "fanSwitch", "capability.switch", title: "${state.fanSwitchStatus}", required: true, submitOnChange:true
+        if (detailedInstructions == true) {paragraph "This humidity sensor is used to trigger any of the response methods."}
         input "humiditySensor", "capability.relativeHumidityMeasurement", title: "${state.humiditySensorStatus}", required: true, submitOnChange:true
         paragraph "NOTE: The humidity sensor you select will need to report about 5 min or less."
+        if (detailedInstructions == true) {paragraph "Rate of change: Triggers when the humidity sensors humidity value increases by more than the humidity increase rate."}
+        if (detailedInstructions == true) {paragraph "Humidity over fixed threshold: Triggers when the humidity sensors humidity value goes over the humidity threshold."}
+        if (detailedInstructions == true) {paragraph "Rate of change and humidity over comparison sensor: Triggers when the humidity is greater than the comparison humidity sensor + comparison offset trigger and the rate of change is greater than the humidity increase rate."}
+        if (detailedInstructions == true) {paragraph "Huumidity over comparison senor: Triggers when the humidity sensors humidity value is greater than the comparison sensors humidity value + comparison offset trigger."}
         input "humidityResponseMethod", "enum", title: "Humidity Response Method", options: humidityResponseMethodOptions, defaultValue: 1, required: true, multiple: true, submitOnChange:true
         app.updateSetting("refresh",[value:"false",type:"bool"])
     }    
     if (settings.humidityResponseMethod?.contains("3") || settings.humidityResponseMethod?.contains("4")) {
         section("") {
+            if (detailedInstructions == true) {paragraph "Comparison sensor is used as a dynamic method of setting a humidity threshold. Combining multiple humidity sensors is a good way of providing a stable baseline humidity value that will adjust over the seasons. Take the comparison sensors humidity plus comparison offset trigger to get your target humidity that you want the fan to come on."}
             input "compareHumiditySensor", "capability.relativeHumidityMeasurement", title: "${state.compareHumiditySensorStatus}", required: true, submitOnChange:true
             if (compareHumiditySensor) {compareHumiditySensor = (compareHumiditySensor.currentValue("humidity"))}
-            input "compareHumiditySensorOffset", "number", title: "Comparison Offset Trigger", required: true, submitOnChange:true
-            paragraph "How much deviation from the comparison sensor do you want to trigger the fan? This will set the comparison sensor to be the threshold plus this offset."
+            if (detailedInstructions == true) {paragraph "Comparison offset trigger is used to increase the comparison humidity by a fixed value. This is added to the comparison sensors humidity value to provide a threshold value to trigger the fan. How much deviation from the comparison sensor do you want to trigger the fan? This will set the comparison sensor to be the threshold plus this offset."}
+            input "compareHumiditySensorOffset", "number", title: "Comparison Offset Trigger, Range: 0-100, Default Value:10", required: true, submitOnChange:true, defaultValue: 10
         }
     }
 	section("<b><u>Fan Activation</u></b>"){
-        input "humidityIncreaseRate", "number", title: "Humidity Increase Rate:", required: true, defaultValue: 3
-        input "humidityThreshold", "number", title: "Humidity Threshold (%):", required: false, defaultValue: 65
-        if (settings.humidityResponseMethod?.contains("4")) {input "humidityIncreasedBy", "number", title: "When humidity rises above or equal to this amount plus the baseline sensor humidity turn on the fan: ", required: true, defaultValue: 9}
-        input "fanOnDelay", "number", title: "Delay turning fan on (Minutes):", required: false, defaultValue: 0
+        if (detailedInstructions == true) {paragraph "Humidity increase rate: This checks the change between humidity samplings.  The sampling rate is device dependent, room size also plays a large part in how fast the humidity will increase. Typical values are around 3 to 6."}
+        if (settings.humidityResponseMethod?.contains("1") || settings.humidityResponseMethod?.contains("3")) {input "humidityIncreaseRate", "number", title: "Humidity Increase Rate, Range: 1-20, Default value: 3", required: true, defaultValue: 3}
+        if (detailedInstructions == true) {paragraph "Humidity threshold: This is the trigger point when humidity goes above or below this value."}
+        if (settings.humidityResponseMethod?.contains("2")) {input "humidityThreshold", "number", title: "Humidity Threshold (%), Range 1-100, Default Value: 65", required: false, defaultValue: 65}
+        if (detailedInstructions == true) {paragraph "Fan on delay: When a trigger tries to turn on the fan, it will wait for this delay before kicking on."}
+        input "fanOnDelay", "number", title: "Delay turning fan on (Minutes), Default Value: 0", required: false, defaultValue: 0
     }
     section("<b><u>Fan Deactivation</b></u>") {
-        input "humidityDropTimeout", "number", title: "How long after the humidity starts to drop should the fan turn off (minutes):", required: true, defaultValue:  10
-        input "humidityDropLimit", "number", title: "What percentage above the starting humidity before triggering the turn off delay:", required: true, defaultValue:  25
-        input "maxRunTime", "number", title: "Maximum time(minutes) for Fan to run when automatically turned on:", required: false, defaultValue: 120
+        input "humidityDropTimeout", "number", title: "How long after the humidity returns to normal should the fan turn off (minutes)? Default Value: 10", required: true, defaultValue:  10
+        if (humidityDropTimeout > 0) {input "humidityDropLimit", "number", title: "What percentage above the starting humidity before triggering the turn off delay? Default Value: 25", required: true, defaultValue: 25} else {humidityDropLimit = 0}
+        input "maxRunTime", "number", title: "Maximum time(minutes) for Fan to run when automatically turned on. Default Value: 120", required: false, defaultValue: 120
     }
     section("<b><u>Manual Activation</b></u>") {
         input "manualControlMode", "enum", title: "When should the fan turn off when turned on manually?", submitOnChange:true, required: true, options: manualControlModeOptions, defaultValue: 2
-        if (settings.manualControlMode?.contains("2")) {input "manualOffMinutes", "number", title: "How many minutes until the fan is auto-turned-off?", submitOnChange:true, required: true, defaultValue: 20}
+        if (detailedInstructions == true) { paragraph "When the fan is manuall turned on, wait this delay before turning off."}
+        if (settings.manualControlMode?.contains("2")) {input "manualOffMinutes", "number", title: "How many minutes until the fan is auto-turned-off? Default Value: 20", submitOnChange:true, required: true, defaultValue: 20}
     }
     section(title: "Additional Features:", hideable: true, hidden: hideAdditionalFeaturesSection()) {
         input "deviceActivation", "capability.switch", title: "Switches to turn on and off the fan immediately.", submitOnChange:true, required:false, multiple:true
-        paragraph "<b>Create a virtual switch to keep lights on while the fan is running to use in other apps or rules:</b>"
-        paragraph "Note: You can use an existing switch.  The app will turn on and off this switch in sync with the fan."
+        paragraph "Create a virtual switch to keep lights on while the fan is running to use in other apps or rules."
+        paragraph "Note: You can use an existing switch. The app will turn on and off this switch in sync with the fan."
         input name: "CreateSmartSwitch", type: "button", title: state.createSmartSwitchButtonName, submitOnChange:true, width: 5
         input "smartSwitch", "capability.switch", title: "${state.smartSwitchStatus}", required: false, submitOnChange:true
     }
@@ -108,7 +119,7 @@ def mainPage() {
         input "isDebug", "bool", title: "Enable debug logging for 30 minutes", submitOnChange: false, required:false, defaultValue: false
         if (detailedInstructions == true) {paragraph "Enable Trace logging for 30 minutes will enable trace logs to show up in the Hubitat logs for 30 minutes after which it will turn them off. Useful for following the logic inside the application but usually not neccesary."}
         input "isTrace", "bool", title: "Enable Trace logging for 30 minutes", submitOnChange: false, required:false, defaultValue: false
-        if (detailedInstructions == true) {paragraph "Logging level is used to permanantly set your logging level for the application.  If it is set higher than any temporary logging options you enable, it will override them.  If it is set lower than temporary logging options, they will take priority until their timer expires.  This is useful if you prefer you logging set to a low level and then can use the logging toggles for specific use cases so you dont have to remember to go back in and change them later.  It's also useful if you are experiencing issues and need higher logging enabled for longer than 30 minutes."}
+        if (detailedInstructions == true) {paragraph "Logging level is used to permanantly set your logging level for the application.  This is useful if you prefer you logging set to a low level and then can use the logging toggles for specific use cases so you dont have to remember to go back in and change them later.  It's also useful if you are experiencing issues and need higher logging enabled for longer than 30 minutes."}
         input "ifLevel","enum", title: "Logging level", required: false, multiple: true, submitOnChange: false, options: logLevelOptions
         paragraph "NOTE: Logging level overrides the temporary logging selections."
     }
@@ -175,9 +186,6 @@ def initialize() {
     subscribe(humiditySensor, "humidity", humidityHandler)
     if (getChildDevice("SmartSwitch_${app.id}")) {(getChildDevice("SmartSwitch_${app.id}")).currentValue(fanSwitch.currentValue("switch"))}
     setCreateSmartSwitchButtonName()
-//    diagnosticHandler()
-//    updateLabel()
-//    getAllOk()
 }
 
 // Device Handlers
@@ -338,13 +346,12 @@ def deviceActivationHandler(evt) {
         deviceActivation.each { it ->
             deviceActivationState = it.currentValue("switch")
         }
-        if (deviceActivationState == "on") {
-            unschedule(turnOffFan)
+        if (evt.value == "on") {
             turnOnFan()
             state.turnOnLaterStarted = false
             state.turnOffLaterStarted = false
             ifTrace("deviceActivationHandler: Turning on the fan.")
-        } else if (deviceActivationState == "off") {
+        } else if (evt.value == "off") {
             unschedule(turnOnFan)
             turnOffFan()
             state.turnOnLaterStarted = false
@@ -645,7 +652,7 @@ def overComparisonOff() {
         }
     }
 }
-
+compareHumiditySensorOffset
 def getComparisonValue() {
     ifTrace("getComparisonValue")
     if (compareHumiditySensor.currentValue("humidity") != null) {state.compareHumidityValue = Double.parseDouble(compareHumiditySensor.currentValue("humidity").replace("%", ""))}
