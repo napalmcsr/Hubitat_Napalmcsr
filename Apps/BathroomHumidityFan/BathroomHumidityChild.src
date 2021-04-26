@@ -14,7 +14,7 @@ import groovy.transform.Field
 import hubitat.helper.RMUtils
 
 def setVersion() {
-    state.version = "1.1.38" // Version number of this app
+    state.version = "1.1.39" // Version number of this app
     state.InternalName = "BathroomHumidityFan"   // this is the name used in the JSON file for this app
 }
 
@@ -67,7 +67,7 @@ def mainPage() {
         if (detailedInstructions == true) {paragraph "Rate of change: Triggers when the humidity sensors humidity value increases by more than the humidity increase rate."}
         if (detailedInstructions == true) {paragraph "Humidity over fixed threshold: Triggers when the humidity sensors humidity value goes over the humidity threshold."}
         if (detailedInstructions == true) {paragraph "Rate of change and humidity over comparison sensor: Triggers when the humidity is greater than the comparison humidity sensor + comparison offset trigger and the rate of change is greater than the humidity increase rate."}
-        if (detailedInstructions == true) {paragraph "Huumidity over comparison senor: Triggers when the humidity sensors humidity value is greater than the comparison sensors humidity value + comparison offset trigger."}
+        if (detailedInstructions == true) {paragraph "Humidity over comparison senor: Triggers when the humidity sensors humidity value is greater than the comparison sensors humidity value + comparison offset trigger."}
         input "humidityResponseMethod", "enum", title: "Humidity Response Method", options: humidityResponseMethodOptions, defaultValue: 1, required: true, multiple: true, submitOnChange:true
         app.updateSetting("refresh",[value:"false",type:"bool"])
     }    
@@ -95,7 +95,7 @@ def mainPage() {
     }
     section("<b><u>Manual Activation</b></u>") {
         input "manualControlMode", "enum", title: "When should the fan turn off when turned on manually?", submitOnChange:true, required: true, options: manualControlModeOptions, defaultValue: 2
-        if (detailedInstructions == true) { paragraph "When the fan is manuall turned on, wait this delay before turning off."}
+        if (detailedInstructions == true) { paragraph "When the fan is manually turned on, wait this delay before turning off."}
         if (settings.manualControlMode?.contains("2")) {input "manualOffMinutes", "number", title: "How many minutes until the fan is auto-turned-off? Default Value: 20", submitOnChange:true, required: true, defaultValue: 20}
     }
     section(title: "Additional Features:", hideable: true, hidden: hideAdditionalFeaturesSection()) {
@@ -896,7 +896,7 @@ def humidityHandlerVariablesBefore() {
 	ifTrace("humidityHandlerVariablesBefore: state.currentHumidityDate = ${state?.currentHumidityDate}")
 	ifTrace("humidityHandlerVariablesBefore: state.startingHumidity = ${state?.startingHumidity}")
 	ifTrace("humidityHandlerVariablesBefore: state.highestHumidity = ${state?.highestHumidity}")
-	ifTrace("humidityHandlerVariablesBefore: state.humidityChangeRate = ${state?.humidityChangeRate.round(2)}")
+	ifTrace("humidityHandlerVariablesBefore: state.humidityChangeRate = ${state?.humidityChangeRate.toFloat().round(2)}")
 	ifTrace("humidityHandlerVariablesBefore: state.targetHumidity = ${state?.targetHumidity}")
     if (settings.humidityResponseMethod?.contains("3") || settings.humidityResponseMethod?.contains("4")) {ifTrace("humidityHandlerVariablesBefore: state.compareHumidity = ${state.compareHumidity}")}
     if (settings.humidityResponseMethod?.contains("3")) {ifTrace("humidityHandlerVariablesBefore: state.compareHumidityValue = ${state.compareHumidityValue}")}
