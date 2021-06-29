@@ -14,7 +14,7 @@ import groovy.transform.Field
 import hubitat.helper.RMUtils
 
 def setVersion() {
-    state.version = "1.1.39" // Version number of this app
+    state.version = "1.1.40" // Version number of this app
     state.InternalName = "BathroomHumidityFan"   // this is the name used in the JSON file for this app
 }
 
@@ -50,6 +50,8 @@ def mainPage() {
     section("") {
         input name: "Pause", type: "button", title: state.pauseButtonName, submitOnChange:true
         input name: "detailedInstructions", type: "bool", title: "Enable detailed instructions", defaultValue: false, submitOnChange: true
+        input name: "On", type: "button", title: "On", submitOnChange:true
+        input name: "Off", type: "button", title: "Off", submitOnChange:true
     }
     section("") {
         if ((state.thisName == null) || (state.thisName == "null <span style=color:white> </span>")) {state.thisName = "Enter a name for this app."}
@@ -298,7 +300,8 @@ def compareHumidityHandler(evt) {
     // compareHumidtyHandler Action
     state.compareHumidityValue = Double.parseDouble(evt.value.replace("%", ""))
     if ((settings.humidityResponseMethod?.contains("3") || settings.humidityResponseMethod?.contains("4")) && compareHumiditySensor) {
-        if ((state?.compareHumidityValue != null) && (compareHumiditySensorOffset != null)) {state.compareHumidity = (compareHumiditySensorOffset.toFloat() + state.compareHumidityValue.toFloat())} else if (state?.compareHumidityValue != null) {state.compareHumidity = state.compareHumidityValue}
+        if ((state?.compareHumidityValue != null) && (compareHumiditySensorOffset != null)) {state.compareHumidity = (compareHumiditySensorOffset.toFloat() + state.compareHumidityValue.toFloat())
+        } else if (state?.compareHumidityValue != null) {state.compareHumidity = state.compareHumidityValue}
     }
 }
 
@@ -593,6 +596,7 @@ def compareRateOfChangeOn() {
                 unschedule(turnOffFan)
                 i = (fanOnDelay * 60)
                 runIn(i, turnOnFan)
+                state.automaticallyTurnedOn = true
                 state.turnOnLaterStarted = true
             } else {
                 ifDebug("compareRateOfChangeOn: Turning on fan due to humidity increase and humidity over comparison sensor humidity")
@@ -764,10 +768,12 @@ def overComparisonOff() {
 def getComparisonValue() {
     ifTrace("getComparisonValue")
     configureHumidityVariables()
-	if ((compareHumiditySensor.currentValue("humidity") != null) && (compareHumiditySensor.currentValue("humidity").contains("%"))) {state.currentHumidityValue = Double.parseDouble(evt.value.replace("%", ""))} else {state.compareHumidityValue = Double.parseDouble(compareHumiditySensor.currentValue("humidity"))}
+	if ((compareHumiditySensor.currentValue("humidity") != null) && (compareHumiditySensor.currentValue("humidity").contains("%"))) {state.currentHumidityValue = Double.parseDouble(compareHumiditySensor.currentValue("humidity").replace("%", ""))} else {state.compareHumidityValue = Double.parseDouble(compareHumiditySensor.currentValue("humidity"))}
     if ((settings.humidityResponseMethod?.contains("3") || settings.humidityResponseMethod?.contains("4")) && compareHumiditySensor && state?.compareHumidityValue && compareHumiditySensorOffset) {
         if ((state?.compareHumidityValue != null) && (compareHumiditySensorOffset != null)) {
             state.compareHumidity = (compareHumiditySensorOffset + state.compareHumidityValue.toFloat())
+        } else if (state?.compareHumidityValue != null){
+            state.compareHumidity = (state.compareHumidityValue.toFloat())
         }
     }
     ifTrace("getComparisonValue: Complete")
@@ -803,15 +809,19 @@ def turnOffFan() {
     configureHumidityVariables()
 	if ((getAllOk() == false) || (state?.paused == true) || (state?.disabled == true) || (state?.pausedOrDisabled == true)) {
         ifTrace("turnOffFan: getAllOk() = ${getAllOk()} state.paused = ${state.paused} state.disabled = ${state.disabled} state.pausedOrDisabled = ${state.pausedOrDisabled}")
-    } else {
+    } else if (fanSwitch?.currentValue("switch") == "on"){
         ifInfo("Turning off the fan.")
         fanSwitch.off()
         unschedule(turnOffFan)
         unschedule(turnOnFan)
         state.status = "(Off)"
-        state.automaticallyTurnedOn = false
-        state.turnOnLaterStarted = false
-        state.turnOffLaterStarted = false
+        if (fanSwitch?.currentValue("switch") == "off") {
+		    state.automaticallyTurnedOn = false
+            state.turnOnLaterStarted = false
+            state.turnOffLaterStarted = false
+	    } else {
+            runIn(10, turnOffFan)
+        }
         updateLabel()
     }
     ifTrace("turnOffFan: Complete")
@@ -821,17 +831,19 @@ def turnOffFanMaxTimeout() {
     ifTrace("turnOffFanMaxTimeout")
 	if ((getAllOk() == false) || (state?.paused == true) || (state?.disabled == true) || (state?.pausedOrDisabled == true)) {
         ifTrace("turnOffFanMaxTimeout: getAllOk() = ${getAllOk()} state.paused = ${state.paused} state.disabled = ${state.disabled} state.pausedOrDisabled = ${state.pausedOrDisabled}")
-    } else {
+    } else if (fanSwitch?.currentValue("switch") == "on") {
         ifInfo("Turning off the fan.")
-        fanSwitch.off()
         unschedule(turnOffFan)
         unschedule(turnOnFan)
+        fanSwitch.off()
+        runIn(10, turnOffFanMaxTimeout)
         state.status = "(Off)"
-        state.automaticallyTurnedOn = false
-        state.turnOnLaterStarted = false
-        state.turnOffLaterStarted = false
-        updateLabel()
+    } else if (fanSwitch?.currentValue("switch") == "off") {
+            state.automaticallyTurnedOn = false
+            state.turnOnLaterStarted = false
+            state.turnOffLaterStarted = false
     }
+    updateLabel()
     ifTrace("turnOffFanMaxTimeout: Complete")
 }
 
@@ -843,10 +855,10 @@ def turnOnFan() {
     } else {
         ifInfo("Turning on the fan.")
         state.automaticallyTurnedOn = true
-        fanSwitch.on()
         unschedule(turnOffFan)
-        state.turnOnLaterStarted = false
         state.turnOffLaterStarted = false
+        state.turnOnLaterStarted = false
+        fanSwitch.on()
         state.status = "(On)"
         if (maxRunTime != null) {
             ifDebug("Maximum run time is ${maxRunTime} minutes")
@@ -972,6 +984,14 @@ def appButtonHandler(btn) {
         ifTrace("Deleting Smart Switch")
         (deleteChildDevice("SmartSwitch_${app.id}"))
         setCreateSmartSwitchButtonName()
+    } else if (btn == "On") {
+        fanSwitch.on()
+        ifDebug("On command sent")
+	runIn(5, updateLabel)
+    } else if (btn == "Off") {
+        fanSwitch.off()
+        ifDebug("Off command sent")
+        runIn(5, updateLabel)
     } else if (btn == "Disabled by Switch") {
         state.disabled = false
         unschedule()
