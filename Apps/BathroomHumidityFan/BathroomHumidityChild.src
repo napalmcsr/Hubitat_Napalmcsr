@@ -14,7 +14,7 @@ import groovy.transform.Field
 import hubitat.helper.RMUtils
 
 def setVersion() {
-    state.version = "1.1.40" // Version number of this app
+    state.version = "1.1.41" // Version number of this app
     state.InternalName = "BathroomHumidityFan"   // this is the name used in the JSON file for this app
 }
 
@@ -43,7 +43,6 @@ preferences {
 def mainPage() {    
     dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0) {
     ifTrace("mainPage")
-    turnOffLoggingTogglesIn30()
     setPauseButtonName()
     setCreateSmartSwitchButtonName()
         
@@ -117,11 +116,11 @@ def mainPage() {
     }
     section(title: "Logging Options:", hideable: true, hidden: hideLoggingSection()) {
         if (detailedInstructions == true) {paragraph "Enable Info logging for 30 minutes will enable info logs to show up in the Hubitat logs for 30 minutes after which it will turn them off. Useful for checking if the app is performing actions as expected."}
-        input "isInfo", "bool", title: "Enable Info logging for 30 minutes", submitOnChange: false, required:false, defaultValue: false
+        input name: "isInfo", type: "bool", title: "Enable Info logging for 30 minutes?", defaultValue: true
         if (detailedInstructions == true) {paragraph "Enable Debug logging for 30 minutes will enable debug logs to show up in the Hubitat logs for 30 minutes after which it will turn them off. Useful for troubleshooting problems."}
-        input "isDebug", "bool", title: "Enable debug logging for 30 minutes", submitOnChange: false, required:false, defaultValue: false
+        input name: "isDebug", type: "bool", title: "Enable debug logging for 30 minutes?", defaultValue: true
         if (detailedInstructions == true) {paragraph "Enable Trace logging for 30 minutes will enable trace logs to show up in the Hubitat logs for 30 minutes after which it will turn them off. Useful for following the logic inside the application but usually not neccesary."}
-        input "isTrace", "bool", title: "Enable Trace logging for 30 minutes", submitOnChange: false, required:false, defaultValue: false
+        input name: "isTrace", type: "bool", title: "Enable Trace logging for 30 minutes?", defaultValue: true
         if (detailedInstructions == true) {paragraph "Logging level is used to permanantly set your logging level for the application.  This is useful if you prefer you logging set to a low level and then can use the logging toggles for specific use cases so you dont have to remember to go back in and change them later.  It's also useful if you are experiencing issues and need higher logging enabled for longer than 30 minutes."}
         input "ifLevel","enum", title: "Logging level", required: false, multiple: true, submitOnChange: false, options: logLevelOptions
         paragraph "NOTE: Logging level overrides the temporary logging selections."
@@ -172,6 +171,9 @@ def updated() {
     if (state?.createSmartSwitch == null) {(state.createSmartSwitch = false)}
     unsubscribe()
     unschedule()
+    if (ifInfo) runIn(1800,infoOff)
+    if (ifDebug) runIn(1800,debugOff)
+    if (ifTrace) runIn(1800,traceOff)
     initialize()
     if (fanSwitch?.currentValue("switch") != null) {state.fanSwitchStatus = "[Fan: ${fanSwitch.currentValue("switch")}]"
     } else if (fanSwitch?.latestValue("switch") != null) {state.fanSwitchStatus = "[Fan: ${fanSwitch.latestValue("switch")}]"
@@ -224,6 +226,28 @@ def modeChangeHandler() {
         updateLabel()
     }
 }
+
+def disableInfoIn30Handler(evt) {
+    if (isInfo == true) {
+        runIn(1800, infoOff)
+        log.info "Info logging disabling in 30 minutes."
+    }
+}
+
+def disableDebugIn30Handler(evt) {
+    if (isDebug == true) {
+        runIn(1800, debugOff)
+        log.debug "Debug logging disabling in 30 minutes."
+    }
+}
+
+def disableTraceIn30Handler(evt) {
+    if (isTrace == true) {
+        if (isTrace == true) {runIn(1800, traceOff)}
+        log.trace "Trace logging disabling in 30 minutes."
+    }
+}
+
 
 // Main Humidity Handler
 def humidityHandler(evt) {
@@ -1107,49 +1131,19 @@ private timeIntervalLabel() {
 }
 
 // Logging functions
-def turnOffLoggingTogglesIn30() {
-    if (!isInfo) {app.updateSetting("isInfo",[value:"false",type:"bool"])}
-    if (!isDebug) {app.updateSetting("isDebug",[value:"false",type:"bool"])}
-    if (!isTrace) {app.updateSetting("isTrace",[value:"false",type:"bool"])}
-    if (isInfo == true) {runIn(1800, infoOff)}
-    if (isDebug == true) {runIn(1800, debugOff)}
-    if (isTrace == true) {runIn(1800, traceOff)}
-}
-
 def infoOff() {
-    log.info "${state.thisName}: Info logging disabled."
     app.updateSetting("isInfo",[value:"false",type:"bool"])
+    if (isInfo == false) {log.warn "${state.thisName}: Info logging disabled."}
 }
 
 def debugOff() {
-    log.info "${state.thisName}: Debug logging disabled."
     app.updateSetting("isDebug",[value:"false",type:"bool"])
+    if (isDebug == false) {log.warn "${state.thisName}: Debug logging disabled."}
 }
 
 def traceOff() {
-    log.trace "${state.thisName}: Trace logging disabled."
     app.updateSetting("isTrace",[value:"false",type:"bool"])
-}
-
-def disableInfoIn30() {
-    if (isInfo == true) {
-        runIn(1800, infoOff)
-        log.info "Info logging disabling in 30 minutes."
-    }
-}
-
-def disableDebugIn30() {
-    if (isDebug == true) {
-        runIn(1800, debugOff)
-        log.debug "Debug logging disabling in 30 minutes."
-    }
-}
-
-def disableTraceIn30() {
-    if (isTrace == true) {
-        runIn(1800, traceOff)
-        log.trace "Trace logging disabling in 30 minutes."
-    }
+    if (isTrace == false) {log.warn "${state.thisName}: Trace logging disabled."}
 }
 
 def ifWarn(msg) {log.warn "${state.thisName}: ${msg}"}
