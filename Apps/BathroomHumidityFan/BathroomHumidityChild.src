@@ -14,7 +14,7 @@ import groovy.transform.Field
 import hubitat.helper.RMUtils
 
 def setVersion() {
-    state.version = "1.1.41" // Version number of this app
+    state.version = "1.1.42" // Version number of this app
     state.InternalName = "BathroomHumidityFan"   // this is the name used in the JSON file for this app
 }
 
@@ -570,7 +570,7 @@ def overFixedThresholdOff() {
     configureHumidityVariables()
     if ((getAllOk() == false) || (state?.paused == true) || (state?.disabled == true) || (state?.pausedOrDisabled == true)) {
         ifTrace("overFixedThresholdOff: getAllOk() = ${getAllOk()} state.paused = ${state.paused} state.disabled = ${state.disabled} state.pausedOrDisabled = ${state.pausedOrDisabled}")
-    } else if (settings.humidityResponseMethod?.contains("2") && (state?.currentHumidity.toFloat() <= humidityThreshold) && state?.automaticallyTurnedOn) {
+    } else if (settings.humidityResponseMethod?.contains("2") && (state?.overThreshold == false) && state?.automaticallyTurnedOn) {
         ifTrace("overFixedThresholdOff: state?.automaticallyTurnedOn = ${state?.automaticallyTurnedOn} settings.manualControlMode?.contains(2) = ${settings.manualControlMode?.contains("2")} !state.turnOffLaterStarted = ${!state.turnOffLaterStarted}")
         if (humidityDropTimeout.toInteger() == 0) {
             unschedule(turnOnFan)
@@ -586,7 +586,7 @@ def overFixedThresholdOff() {
             ifDebug("Turning off the fan in ${humidityDropTimeout} minutes.")
             ifTrace("overFixedThresholdOff: state.turnOffLaterStarted = ${state?.turnOffLaterStarted}")
         }   
-    } else if (settings.manualControlMode?.contains("1") && (state?.currentHumidity.toFloat() <= humidityThreshold) && !state?.automaticallyTurnedOn) {
+    } else if (settings.manualControlMode?.contains("1") && (state?.overThreshold == false) && !state?.automaticallyTurnedOn) {
         ifTrace("overFixedThresholdOff: state?.automaticallyTurnedOn = ${state?.automaticallyTurnedOn} !state.turnOffLaterStarted = ${!state.turnOffLaterStarted}")
         if (humidityDropTimeout == 0) {
             unschedule(turnOnFan)
