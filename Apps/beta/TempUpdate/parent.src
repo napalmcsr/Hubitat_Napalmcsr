@@ -1,0 +1,79 @@
+/**
+*  Virtual Thermostat Temperature Update Parent
+*
+* Puts a temp sensor to control the temperature of a virtual thermostat
+*
+*  Copyright 2018 Craig Romei
+*  GNU General Public License v2 (https://www.gnu.org/licenses/gpl-2.0.txt)
+*
+*/
+
+definition(
+    name: "Virtual Thermostat Temperature Update Parent",
+    namespace: "napalmcsr",
+    author: "Craig Romei",
+    description: "Virtual Thermostat Temperature Update Parent",
+    category: "Convenience",
+    iconUrl: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg",
+    iconX2Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg",
+    iconX3Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg"
+)
+
+preferences {
+    page(name: "pageConfig") // Doing it this way elimiates the default app name/mode options.
+}
+def pageConfig()
+{
+    dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0) {
+      section ("") {
+        paragraph title: "VThermostat Temperature updaters", "Update vThermostats based on a temperature sensor"
+      }
+      section {
+        app(name: "childApps", appName: "Virtual Thermostat Temperature Update Child", namespace: "napalmcsr", title: "<b>Add a new Virtual Thermostat</b>",description: "Create New Thermostat Update...", multiple: true)
+      }
+    }
+}
+
+
+def installed() {initialize()}
+def updated() {initialize()}
+def initialize() {
+    unsubscribe()
+    
+    log.info "Initialised with settings: ${settings}"
+    log.info "There are ${childApps.size()} installed child apps"
+    childApps.each {child ->
+    log.info "Child app: ${child.label}"
+    }    
+}
+	 
+
+
+def debuglog(statement)
+{   
+               def logL = 0
+    if (logLevel) logL = logLevel.toInteger()
+    if (logL == 0) {return}//bail
+    else if (logL >= 2)
+               {
+                              log.debug(statement)
+               }
+}
+def infolog(statement)
+{       
+               def logL = 0
+    if (logLevel) logL = logLevel.toInteger()
+    if (logL == 0) {return}//bail
+    else if (logL >= 1)
+               {
+                              log.info(statement)
+    }
+}
+def getLogLevels(){
+    return [["0":"None"],["1":"Running"],["2":"NeedHelp"]]
+}
+
+def setVersion(){
+                state.version = "1.0.0" // Version number of this app
+                state.InternalName = "VirtThermTempParent"   // this is the name used in the JSON file for this app
+}
