@@ -1,0 +1,124 @@
+/**
+*  Virtual Thermostat Temperature Update Child
+*
+*  V1.0.0 Initial Release
+*  V1.0.1 Fixed inital temperature on install
+*
+*  Updates the temperature of a virtual thermostat using a temp sensor
+*
+*  Copyright 2018 Craig Romei
+*  GNU General Public License v2 (https://www.gnu.org/licenses/gpl-2.0.txt)
+*
+*/
+
+definition(
+    name: "Virtual Thermostat Temperature Update Child",
+    namespace: "napalmcsr",
+    author: "Craig Romei",
+    description: "Update a Virtual Thermostats temperature using a temperature sensor",
+    category: "Convenience",
+    parent: "napalmcsr:Virtual Thermostat Temperature Update Parent",
+    iconUrl: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg",
+    iconX2Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg",
+    iconX3Url: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/craig-romei/Bathroom_Fan.jpg"
+)
+preferences {
+    page(name: "pageConfig") // Doing it this way elimiates the default app name/mode options.
+}
+def pageConfig()
+{
+	dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0) {
+
+		section("Sensor and Thermostat")
+		{
+
+			input "TempSensor", "capability.temperatureMeasurement", title: "Temperature Sensor:", required: true
+			input(
+				name			: "tStat"
+				,title			: "Virtual Thermostat"
+				,multiple		: false
+				,required		: true
+				,type			: "capability.thermostat"
+				,submitOnChange	: false
+			)
+		}
+
+		section("Logging")
+		{                       
+			input(
+			name                      : "logLevel"
+			,title                       : "IDE logging level" 
+			,multiple        : false
+			,required                : true
+			,type                       : "enum"
+			,options              : getLogLevels()
+			,submitOnChange : false
+			,defaultValue : "0"
+			)  
+		}
+		section() {label title: "Enter a name for this automation", required: false}
+	}
+}
+
+def installed()
+{
+    initialize()
+}
+
+def updated()
+{
+    unsubscribe()
+    initialize()
+}
+
+def initialize()
+{
+    infolog "Initializing"
+	subscribe(TempSensor, "temperature", TemperatureHandler)
+	debuglog "Getting current Temperature and updating Thermostat" 
+	state.lastTemp = TempSensor.currentValue("temperature").toFloat()
+	tStat.setTemperature(state.lastTemp)
+}
+
+def TemperatureHandler(evt){
+    debuglog "TemperatureHandler- evt name: ${evt.name}, value: ${evt.value}" 
+    state.lastTemp = evt.value.toFloat()   
+	tStat.setTemperature(state.lastTemp)
+	infolog "Temperature Set to Thermostat!"
+}
+
+
+
+
+
+
+
+
+def debuglog(statement)
+{   
+               def logL = 0
+    if (logLevel) logL = logLevel.toInteger()
+    if (logL == 0) {return}//bail
+    else if (logL >= 2)
+               {
+                              log.debug(statement)
+               }
+}
+def infolog(statement)
+{       
+               def logL = 0
+    if (logLevel) logL = logLevel.toInteger()
+    if (logL == 0) {return}//bail
+    else if (logL >= 1)
+               {
+                              log.info(statement)
+    }
+}
+def getLogLevels(){
+    return [["0":"None"],["1":"Running"],["2":"NeedHelp"]]
+}
+
+def setVersion(){
+                state.version = "1.0.1" // Version number of this app
+                state.InternalName = "VirtThermTempChild"   // this is the name used in the JSON file for this app
+}
