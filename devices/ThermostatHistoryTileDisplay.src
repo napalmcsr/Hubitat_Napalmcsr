@@ -32,6 +32,14 @@ metadata {
 				command "SetSixDaysAgo", ["string"]
 				command "SetSevenDaysAgo", ["string"]	
 				command "refresh"
+				command "SetDailyCooling", ["NUMBER"]	
+				command "SetDailyFan", ["NUMBER"]	
+				command "SetDailyHeating", ["NUMBER"]	
+				command "SetDailyIdle", ["NUMBER"]	
+                command "SetDailyPendCool", ["NUMBER"]	
+                command "SetDailyPendHeat", ["NUMBER"]	
+                command "SetDailyVentEcon", ["NUMBER"]	
+                
 				attribute "Today", "string"
 				attribute "Yesterday", "string"
 				attribute "TwoDaysAgo", "string"
@@ -44,6 +52,13 @@ metadata {
                 attribute "DriverVersion", "string"
                 attribute "DriverStatus", "string"
 	            attribute "DriverUpdate", "string"
+				attribute "DailyTotalHeating", "NUMBER"
+				attribute "DailyTotalCooling", "NUMBER"
+				attribute "DailyTotalIdle", "NUMBER"
+				attribute "DailyTotalFan", "NUMBER"
+				attribute "DailyTotalVentEcon", "NUMBER"
+				attribute "DailyTotalPendHeat", "NUMBER"
+				attribute "DailyTotalPendCool", "NUMBER"
 		}
 	preferences()
 	{input(
@@ -209,9 +224,44 @@ def SetSevenDaysAgo(SevenDaysAgoData){
 }
 			
 def refresh(){
-    infolog "SetToday - Start"
+    infolog "Refresh - Start"
 	sendEvent(name: "Today", value: state.TodayData, isStateChange: true)
 	sendEvent(name: "Today", value: state.YesterdayData, isStateChange: true)
+}
+			
+def SetDailyIdle(TimeinHours){
+    infolog "SetDailyIdle - Start"
+	sendEvent(name: "DailyTotalIdle", value: TimeinHours, isStateChange: true)
+}
+			
+def SetDailyCooling(TimeinHours){
+    infolog "SetDailyCooling - Start"
+	sendEvent(name: "DailyTotalCooling", value: TimeinHours, isStateChange: true)
+}
+			
+def SetDailyFan(TimeinHours){
+    infolog "SetDailyFan - Start"
+	sendEvent(name: "DailyTotalFan", value: TimeinHours, isStateChange: true)
+}
+			
+def SetDailyHeating(TimeinHours){
+    infolog "SetDailyHeating - Start"
+	sendEvent(name: "DailyTotalHeating", value: TimeinHours, isStateChange: true)
+}
+			
+def SetDailyPendHeat(TimeinHours){
+    infolog "SetDailyPreHeat - Start"
+	sendEvent(name: "DailyTotalPendHeat", value: TimeinHours, isStateChange: true)
+}
+			
+def SetDailyVentEcon(TimeinHours){
+    infolog "SetDailyVentEcon - Start"
+	sendEvent(name: "DailyTotalVentEcon", value: TimeinHours, isStateChange: true)
+}
+			
+def SetDailyPendCool(TimeinHours){
+    infolog "SetDailyPreCool - Start"
+	sendEvent(name: "DailyTotalPendCool", value: TimeinHours, isStateChange: true)
 }
 
 
@@ -315,6 +365,6 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.0.1"	 // Version number of this driver
+		state.Version = "1.0.2"	 // Version number of this driver
 		state.InternalName = "TstatTrackerTile"   // this is the name used in the JSON file for this driver
 }
