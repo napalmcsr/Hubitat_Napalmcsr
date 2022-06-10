@@ -246,6 +246,13 @@ def Timehandler()
     {
         CreateVerticalDashboardNow()
         CreateVerticalDashboardHistory()
+        DashboardTileUpdate.SetDailyCooling(state.Last7Days[0]["cooling"]/(60*60))
+        DashboardTileUpdate.SetDailyIdle(state.Last7Days[0]["idle"]/(60*60))
+        DashboardTileUpdate.SetDailyFan(state.Last7Days[0]["fan only"]/(60*60))
+        DashboardTileUpdate.SetDailyHeating(state.Last7Days[0]["heating"]/(60*60))
+        DashboardTileUpdate.SetDailyPendCool(state.Last7Days[0]["pending cool"]/(60*60))
+        DashboardTileUpdate.SetDailyVentEcon(state.Last7Days[0]["vent economizer"]/(60*60))
+        DashboardTileUpdate.SetDailyPendHeat(state.Last7Days[0]["pending heat"]/(60*60))
     }
     infolog "Timehandler - complete"
 }
@@ -409,6 +416,6 @@ def getLogLevels(){
     return [["0":"None"],["1":"Running"],["2":"NeedHelp"]]
 }
 def setVersion(){
-                state.version = "2.1.0" // Version number of this app
+                state.version = "2.2.0" // Version number of this app
                 state.InternalName = "TstatTracker"   // this is the name used in the JSON file for this app
 				}
